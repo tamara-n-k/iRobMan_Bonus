@@ -9,6 +9,7 @@ import yaml
 from mujoco_app.mj_simulation import MjSim
 
 
+# Metric for success
 def check_object_in_basket(sim: MjSim) -> dict:
     """Check if the grasp object is inside the basket.
 
@@ -67,12 +68,14 @@ def check_object_in_basket(sim: MjSim) -> dict:
     }
 
 
+# point projection from 3D to 2D
 def project_points(X_world, K, R_cw, t_cw):
     X_cam = (R_cw @ X_world.T + t_cw[:, None]).T
     x = (K @ X_cam.T).T
     return x[:, :2] / x[:, 2:3]
 
 
+# Helper method to visualize RGB and DEPTH image
 def show_rgb_depth(
     rgb,
     depth,
@@ -112,18 +115,15 @@ def show_rgb_depth(
     # Hide invalid depth
     depth_vis[~np.isfinite(depth_vis)] = np.nan
 
-    im = axes[1].imshow(depth_vis, cmap=cmap)
     axes[1].set_title(cam_name + "_" + title_depth)
     axes[1].axis("off")
-
-    # # Colorbar
-    # fig.colorbar(im, ax=axes[1], fraction=0.046, pad=0.04)
 
     plt.tight_layout()
     plt.show()
 
 
-def runner(config: Dict[str, Any]):
+# Experiment runner example
+def runner(config: Dict[str, Any], num_experiments: int):
     # Configure in YAML
     cam_cfg = config.get("mujoco", {}).get("camera", {})
     width = cam_cfg.get("width", 640)
@@ -133,35 +133,37 @@ def runner(config: Dict[str, Any]):
     fovy = cam_cfg.get("fovy", 58.0)
 
     sim = MjSim(config)
-    sim.reset()
+    for _ in range(num_experiments):
+        sim.reset()
 
-    # For sim stabilization
-    for _ in range(1000):
-        sim.step()
+        # For sim stabilization
+        for _ in range(1000):
+            sim.step()
 
-    # lower iterations per step for reaching the target pose
-    print("Moving to target pose...")
-    for t in range(100000):
-        sim.step()
-        rgb, depth, intrinsic, extrinsic = sim.render_camera(
-            "side_cam",
-            width=width,
-            height=height,
-            near=near,
-            far=far,
-            fovy=fovy,
-        )
-        ee_body_name = sim.robot_settings.get("ee_body_name", "hand")
-        ee_body_id = mujoco.mj_name2id(
-            sim.model, mujoco.mjtObj.mjOBJ_BODY, ee_body_name
-        )
-        ee_pos = sim.data.xpos[ee_body_id].copy()
-        # plt.scatter(pts[:, 0], pts[:, 1], c="r")
+        # lower iterations per step for reaching the target pose
+        print("Moving to target pose...")
+        for t in range(100000):
+            sim.step()
 
-        # plt.show()
-        if sim.check_robot_obstacle_collision():
-            print("Collision!")
-            break
+            # Showcasing some operations that can be done with the simulation
+            rgb, depth, intrinsic, extrinsic = sim.render_camera(
+                "side_cam",
+                width=width,
+                height=height,
+                near=near,
+                far=far,
+                fovy=fovy,
+            )
+            ee_body_name = sim.robot_settings.get("ee_body_name", "hand")
+            ee_body_id = mujoco.mj_name2id(
+                sim.model, mujoco.mjtObj.mjOBJ_BODY, ee_body_name
+            )
+            ee_pos = sim.data.xpos[ee_body_id].copy()
+            # Robot should not collide with obstacles
+            # This condition must be there
+            if sim.check_robot_obstacle_collision():
+                print("Collision!")
+                break
     sim.close()
     print("Simulation completed.")
 
@@ -169,7 +171,8 @@ def runner(config: Dict[str, Any]):
 def main(config_path: str):
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
-    runner(config)
+    # You can make runner for one experiment
+    runner(config, 10)
 
 
 if __name__ == "__main__":

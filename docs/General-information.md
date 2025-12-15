@@ -4,18 +4,12 @@
 
 The following YCB objects are available (case-sensitive):
 - YcbBanana
-- YcbChipsCan
 - YcbCrackerBox
 - YcbFoamBrick
-- YcbGelatinBox
-- YcbHammer
 - YcbMasterChefCan
-- YcbMediumClamp
 - YcbMustardBottle
 - YcbPear
-- YcbPottedMeatCan
 - YcbPowerDrill
-- YcbScissors
 - YcbStrawberry
 - YcbTennisBall
 - YcbTomatoSoupCan
@@ -147,3 +141,20 @@ Note on default object:
   ```bash
   uv cache clean
   ```
+
+## MjSim issues:
+
+- If your simulation seems slow it can be due to the time of computations for your methods. Check once with only `sim.step()` in a for loop.
+- You can also increase the number of physics steps per simulation step:
+  ```python
+  sim.step(10)  # Implies 10 physics steps per simulation step
+  ```
+- You have been given an example script in `main.py` showcasing how to use the simulator.
+- Usually its a good idea to do a few thousand sim.steps() before you start acting on the sim. This ensures all the objects have settled down.
+- Always after ending an episode with a given object, reset the simulation:
+  ```python
+  sim.reset()
+  ```
+  Do not exit the code and start again as this will not randomize the objects correctly and will spawn it in the same location as before.
+- If your object seems too wobbly and not settling down even after a lot of steps inform the TA's and we will update that particular model or provide you with a different model.
+- If you encounter any other issues, please refer to the [official documentation](https://mujoco.readthedocs.io/en/latest/) or contact the TA's for assistance.

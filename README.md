@@ -161,5 +161,6 @@ python view_object_with_sensors.py YcbStrawberry --save-sensors --log-interval 2
 - General Information: [General-information.md](docs/General-information.md)
 - How to use sensor data: [Sensors-data-guide.md](docs/Sensors-data-guide.md)
 - How to control the robot: [Actions-control-guide.md](docs/Actions-control-guide.md)
+- Task information: [Task-information.md](docs/Task-information.md)
 
 Happy experimenting!
