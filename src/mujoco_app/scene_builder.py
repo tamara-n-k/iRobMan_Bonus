@@ -926,6 +926,9 @@ class SceneBuilder:
     ) -> Path:
         tree = ET.parse(xml_path)
         root = tree.getroot()
+        removed_textures = self._strip_missing_texture_references(
+            root, xml_path
+        )
         world = root.find("worldbody")
         if world is None:
             raise ValueError("Object XML missing worldbody element")
@@ -941,7 +944,62 @@ class SceneBuilder:
             xml_path.parent / f"_irobman_{source_stem}_{body_name}_patched.xml"
         )
         tree.write(patched_path)
+        if removed_textures:
+            print(
+                "[WARN] Missing texture files for "
+                f"{xml_path.parent.name}; loading object without them: "
+                + ", ".join(sorted(removed_textures))
+            )
         return patched_path
+
+    def _strip_missing_texture_references(
+        self, root: ET.Element, xml_path: Path
+    ) -> List[str]:
+        """Remove broken texture references from an object XML tree.
+
+        Some bundled YCB object XML files reference texture images that are
+        not present in the repository. MuJoCo treats those missing files as a
+        hard load error, so this helper removes any `<texture>` assets whose
+        `file` target does not exist next to the source XML. If a removed
+        texture was referenced by a `<material>`, the material is downgraded to
+        a plain material by deleting its `texture` attribute.
+
+        Args:
+            root: Parsed root element of the object XML being patched.
+            xml_path: Filesystem path to the original object XML. Relative
+                texture paths are resolved against this directory.
+
+        Returns:
+            A list of missing texture file names that were stripped. The caller
+            uses this for warning output so the missing assets remain visible to
+            the user.
+        """
+        asset = root.find("asset")
+        if asset is None:
+            return []
+
+        removed_names: List[str] = []
+        removed_name_set = set()
+        for texture in list(asset.findall("texture")):
+            texture_file = texture.get("file")
+            texture_name = texture.get("name")
+            if not texture_file or not texture_name:
+                continue
+            texture_path = (xml_path.parent / texture_file).resolve()
+            if texture_path.exists():
+                continue
+            asset.remove(texture)
+            removed_names.append(texture_file)
+            removed_name_set.add(texture_name)
+
+        if not removed_name_set:
+            return removed_names
+
+        for material in asset.findall("material"):
+            if material.get("texture") in removed_name_set:
+                material.attrib.pop("texture", None)
+
+        return removed_names
 
 
 def build_scene(cfg: dict) -> SceneArtifacts:
