@@ -7,7 +7,7 @@ import yaml
 
 from mujoco_app.ground_truth import get_body_pose_ground_truth
 from mujoco_app.mj_simulation import MjSim
-from mujoco_app.perception import estimate_body_pose
+from mujoco_app.perception import estimate_grasp_object_pose
 from mujoco_app.pose_types import Pose
 
 
@@ -65,16 +65,12 @@ def build_observation(
         "depth": depth,
         "intrinsic": intrinsic,
         "extrinsic": extrinsic,
+        "mask": depth > 0.0,
     }
 
 
-def target_body_names(sim: MjSim) -> list[str]:
-    names: list[str] = []
-    grasp_body_name = sim.ids.get("grasp_object", {}).get("body_name")
-    if grasp_body_name:
-        names.append(grasp_body_name)
-    names.extend(list(sim.ids.get("moving_obstacles", {}).keys())[:2])
-    return names
+def grasp_body_name(sim: MjSim) -> str:
+    return sim.ids["grasp_object"]["body_name"]
 
 
 def run_realtime_loop(sim: MjSim) -> None:
@@ -106,32 +102,32 @@ def compare_estimates(
 
         camera_name = select_camera_name(sim)
         observation = build_observation(sim, config, camera_name)
+        body_name = grasp_body_name(sim)
 
         print(f"Perception comparison using camera '{camera_name}':")
-        for body_name in target_body_names(sim):
-            estimate = estimate_body_pose(sim, body_name, observation)
-            ground_truth = get_body_pose_ground_truth(sim, body_name)
-            error = pose_error(estimate, ground_truth)
+        estimate = estimate_grasp_object_pose(sim, observation)
+        ground_truth = get_body_pose_ground_truth(sim, body_name)
+        error = pose_error(estimate, ground_truth)
 
-            print(f"  {body_name}:")
-            print(
-                "    estimate pos={} quat={}".format(
-                    np.round(estimate.position, 4).tolist(),
-                    np.round(estimate.quaternion_xyzw, 4).tolist(),
-                )
+        print(f"  {body_name}:")
+        print(
+            "    estimate pos={} quat={}".format(
+                np.round(estimate.position, 4).tolist(),
+                np.round(estimate.quaternion_xyzw, 4).tolist(),
             )
-            print(
-                "    ground truth pos={} quat={}".format(
-                    np.round(ground_truth.position, 4).tolist(),
-                    np.round(ground_truth.quaternion_xyzw, 4).tolist(),
-                )
+        )
+        print(
+            "    ground truth pos={} quat={}".format(
+                np.round(ground_truth.position, 4).tolist(),
+                np.round(ground_truth.quaternion_xyzw, 4).tolist(),
             )
-            print(
-                "    errors: position={:.4f} m, orientation={:.2f} deg".format(
-                    error["position_error_m"],
-                    error["orientation_error_deg"],
-                )
+        )
+        print(
+            "    errors: position={:.4f} m, orientation={:.2f} deg".format(
+                error["position_error_m"],
+                error["orientation_error_deg"],
             )
+        )
 
         if realtime:
             if not bool(config.get("mujoco", {}).get("gui", False)):
