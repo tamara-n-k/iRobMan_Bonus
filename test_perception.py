@@ -35,6 +35,9 @@ def pose_error(
 
 
 def select_camera_name(sim: MjSim) -> str:
+    user_camera_cfg = dict(sim.cfg.get("mujoco", {}).get("user_camera", {}))
+    if bool(user_camera_cfg.get("enable", False)):
+        return str(user_camera_cfg.get("name", "user_cam"))
     if "side_cam" in sim.extra_cameras:
         return "side_cam"
     return sim.ids.get("cam_name", "static")
@@ -65,7 +68,6 @@ def build_observation(
         "depth": depth,
         "intrinsic": intrinsic,
         "extrinsic": extrinsic,
-        "mask": depth > 0.0,
     }
 
 
@@ -140,10 +142,18 @@ def compare_estimates(
         sim.close()
 
 
-def main(config_path: str, stabilization_steps: int, realtime: bool) -> None:
+def main(
+    config_path: str,
+    stabilization_steps: int,
+    realtime: bool,
+) -> None:
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
-    compare_estimates(config, stabilization_steps, realtime)
+    compare_estimates(
+        config,
+        stabilization_steps,
+        realtime,
+    )
 
 
 if __name__ == "__main__":
