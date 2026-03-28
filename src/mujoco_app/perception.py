@@ -292,21 +292,6 @@ def _choose_voxel_size(point_cloud: o3d.geometry.PointCloud) -> float:
     max_extent = float(np.max(bounds_extent))
     return max(0.0025, max_extent / 30.0)
 
-
-def _run_icp(
-    model_cloud: o3d.geometry.PointCloud,
-    scene_cloud: o3d.geometry.PointCloud,
-    voxel_size: float,
-    initial_transform: np.ndarray,
-):
-    return o3d.pipelines.registration.registration_icp(
-        model_cloud,
-        scene_cloud,
-        voxel_size * 1.5,
-        initial_transform,
-        o3d.pipelines.registration.TransformationEstimationPointToPoint(),
-    )
-
 def _point_cloud_extent(point_cloud: o3d.geometry.PointCloud) -> np.ndarray:
     return np.asarray(point_cloud.get_max_bound()) - np.asarray(
         point_cloud.get_min_bound()

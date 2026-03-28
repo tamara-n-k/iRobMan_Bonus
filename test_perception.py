@@ -35,12 +35,7 @@ def pose_error(
 
 
 def select_camera_name(sim: MjSim) -> str:
-    user_camera_cfg = dict(sim.cfg.get("mujoco", {}).get("user_camera", {}))
-    if bool(user_camera_cfg.get("enable", False)):
-        return str(user_camera_cfg.get("name", "user_cam"))
-    if "side_cam" in sim.extra_cameras:
-        return "side_cam"
-    return sim.ids.get("cam_name", "static")
+    return "side_cam"
 
 
 def build_observation(
