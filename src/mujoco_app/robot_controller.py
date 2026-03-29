@@ -82,7 +82,7 @@ class RobotController:
         if path:
             if verbose:
                 print(f"[CONTROLLER] Path found with {len(path)} waypoints! Moving to target...")
-            self._execute_path(path, sub_steps=50, verbose=verbose)
+            self._execute_path(path, sub_steps=500, verbose=verbose)
             if verbose:
                 print("[CONTROLLER] Target reached!")
             return True
@@ -100,10 +100,9 @@ class RobotController:
                 q_interp = (1 - alpha) * last_waypoint + alpha * next_waypoint
                 
                 self.data.ctrl[:7] = q_interp
-                self.sim.step()
-                
-                time.sleep(0.005) 
-             
+                for _ in range(5): 
+                    self.sim.step()
+                time.sleep(0.005)
                 self.step_count += 1
                 
             last_waypoint = next_waypoint.copy()
@@ -116,7 +115,8 @@ class RobotController:
             alpha = step / num_steps
             q_interp = (1 - alpha) * start_q + alpha * goal_q
             self.data.ctrl[:7] = q_interp
-            self.sim.step()            
+            for _ in range(5): 
+                self.sim.step()
             time.sleep(0.005)
             self.step_count += 1
             
@@ -140,8 +140,10 @@ class RobotController:
             
             if success:
                 self.data.ctrl[:7] = q_step[:7]
-                self.sim.step()
+                for _ in range(5): 
+                    self.sim.step()
                 time.sleep(0.005)
+                self.step_count += 1
 
             else:
                 print(f"Warning: IK failed at step {i} of linear path")

@@ -386,7 +386,6 @@ def view_object_with_sensors(
     print("[PHASE 1] MOVING TO HOME POSITION")
     print("="*80)
     controller.move_to_home(q_home, verbose=True)
-    time.sleep(1)  # Pause briefly at home position
 
     # === PHASE 2: MOVE TO BANANA ===
     print("\n" + "="*80)
@@ -403,28 +402,29 @@ def view_object_with_sensors(
 
     if success:
         print("[STATUS] RRT Finished. Settling for precision...")
-        for _ in range(100):
+        for _ in range(150):
             sim.step()
             time.sleep(0.005)
         # === PHASE 3: CARTESIAN LINEAR (The Straight Descent) ===
         print("[STATUS] Descending linearly...")
         start_xyz = sim.data.body("hand").xpos.copy()
-        grasp_pose = target_pos + np.array([0.0, 0.0, 0.03])
-        controller.move_cartesian_linear(start_xyz, grasp_pose, target_quat, num_steps=100)            
-        for _ in range(100): 
+        grasp_pose = target_pos + np.array([0.0, 0.0, 0.07])
+        controller.move_cartesian_linear(start_xyz, grasp_pose, target_quat, num_steps=200)            
+        for _ in range(50): 
             sim.step()
             time.sleep(0.005)
 
         # === PHASE 4: GRASP ===
         print("[GRASP] Closing gripper...")
         sim.data.ctrl[7:] = 0.00
-        for _ in range(50):
+        for _ in range(50): 
             sim.step()
+        time.sleep(0.005)
         # ===PHASE 5: POST GRASP ===
         print("[STATUS] Lifting banana...")
         current_pose = sim.data.body("hand").xpos.copy()
         post_grasp_lift = current_pose + np.array([0.0, 0.0, 0.2]) 
-        controller.move_cartesian_linear(current_pose, post_grasp_lift, target_quat, num_steps=100)
+        controller.move_cartesian_linear(current_pose, post_grasp_lift, target_quat, num_steps=200)
         for _ in range(50):
             sim.step()
             time.sleep(0.005)
