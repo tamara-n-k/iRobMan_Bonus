@@ -22,6 +22,45 @@ class GraspPrediction:
     width: float
 
 
+def get_wrist_camera_observation(sim: Any) -> dict[str, Any]:
+    """Render an observation from the configured wrist camera.
+
+    The returned dict is directly compatible with
+    `estimate_grasp_from_hand_camera`.
+    """
+
+    mujoco_cfg = dict(getattr(sim, "cfg", {}).get("mujoco", {}))
+    base_camera_cfg = dict(mujoco_cfg.get("camera", {}))
+    wrist_camera_cfg = dict(mujoco_cfg.get("wrist_camera", {}))
+
+    if not wrist_camera_cfg.get("enable", True):
+        raise ValueError("MuJoCo wrist camera is disabled in the config")
+
+    camera_name = str(wrist_camera_cfg.get("name", "wrist_cam"))
+    width = int(base_camera_cfg.get("width", 640))
+    height = int(base_camera_cfg.get("height", 480))
+    near = float(base_camera_cfg.get("near", 0.01))
+    far = float(base_camera_cfg.get("far", 5.0))
+    fovy = float(wrist_camera_cfg.get("fovy", base_camera_cfg.get("fovy", 58.0)))
+
+    rgb, depth, intrinsic, extrinsic = sim.render_camera(
+        camera_name,
+        width=width,
+        height=height,
+        near=near,
+        far=far,
+        fovy=fovy,
+    )
+    return {
+        "camera_name": camera_name,
+        "camera_far": far,
+        "rgb": rgb,
+        "depth": depth,
+        "intrinsic": intrinsic,
+        "extrinsic": extrinsic,
+    }
+
+
 def estimate_grasp_from_hand_camera(
     observation: dict[str, Any],
     object_pose: Pose,
