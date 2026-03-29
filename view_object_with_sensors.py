@@ -434,7 +434,7 @@ def view_object_with_sensors(
     basket_pos = sim.data.body("basket").xpos.copy()
 
     basket_hover_pos = basket_pos + np.array([0.0, 0.0, 0.20]) 
-    basket_drop_pos = basket_pos + np.array([0.0, 0.0, 0.07]) 
+    basket_drop_pos = basket_pos + np.array([0.0, 0.0, 0.15]) 
 
     print("[STATUS] Traveling to basket...")
     success = controller.move_to_target(basket_hover_pos, target_quat)
@@ -448,16 +448,27 @@ def view_object_with_sensors(
             sim.step()
             time.sleep(0.002)
 
-        print("[GRASP] Releasing banana...")
-        sim.data.ctrl[7:] = 0.04  # Open the fingers
-        
-        for _ in range(150): 
-            sim.step()
-            time.sleep(0.002)
+    print("[GRASP] Releasing banana...")
+    sim.data.ctrl[7:] = 0.04  # Open the fingers
+    
+    for _ in range(50): 
+        sim.step()
+        time.sleep(0.002)
 
-        print("[SUCCESS] Mission complete. Returning to Home.")
-        controller.move_to_home(q_home)
-                
+    # === PHASE 7: POST-PLACE RETREAT ===
+    print("[STATUS] Banana released. Retreating from basket...")
+    
+    current_pose = sim.data.body("hand").xpos.copy()
+    retreat_pose = current_pose + np.array([0.0, 0.0, 0.30])
+
+    controller.move_cartesian_linear(current_pose, retreat_pose, target_quat, num_steps=100)
+    
+    for _ in range(50):
+        sim.step()
+        time.sleep(0.002)
+    print("[SUCCESS] Mission complete. Returning to Home.")
+    controller.move_to_home(q_home)
+            
         
     # Get step count from controller
     step_count = controller.get_step_count()
