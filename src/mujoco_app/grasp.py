@@ -11,9 +11,9 @@ import numpy as np
 
 from mujoco_app.pose_types import Pose
 
-from giga.detection_implicit import gigaImplicit
-from giga.perception import CameraIntrinsic, TSDFVolume
-from giga.utils.transform import Rotation, Transform
+from vgn.detection_implicit import VGNImplicit
+from vgn.perception import CameraIntrinsic, TSDFVolume
+from vgn.utils.transform import Rotation, Transform
 
 
 @dataclass
@@ -25,7 +25,7 @@ class GraspPrediction:
 def estimate_grasp_from_hand_camera(
     observation: dict[str, Any],
     object_pose: Pose,
-    model_path: Path = Path(__file__).resolve().parents[2] / "giga_models/giga_pile.pt",
+    model_path: Path = Path(__file__).resolve().parents[2] / "giga/giga_pile.pt",
     tsdf_size: float = 0.30,
     tsdf_resolution: int = 40,
 ) -> GraspPrediction:
@@ -48,7 +48,7 @@ def estimate_grasp_from_hand_camera(
     if extrinsic.shape != (4, 4):
         raise ValueError("Expected observation['extrinsic'] to have shape (4, 4)")
 
-    planner = gigaImplicit(
+    planner = VGNImplicit(
         model_path,
         "giga",
         best=True,
