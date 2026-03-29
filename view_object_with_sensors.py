@@ -283,7 +283,28 @@ class SensorLogger:
         print(f"\n[OK] Saved sensor logs to: {self.log_dir}")
         print(f"  - Logged {self.frame_count} frames")
         print(f"  - Object in basket: {in_basket_percentage:.1f}% of frames")
+    
+    
+def get_grasp_pose(sim, object_name="sample_object"):
+    banana_pos = sim.data.body(object_name).xpos.copy()
+    banana_mat = sim.data.body(object_name).xmat.reshape(3, 3)
+    
+    banana_yaw = math.atan2(banana_mat[1, 0], banana_mat[0, 0])
+    grasp_yaw = banana_yaw + (math.pi / 2)
 
+    q_down = np.array([0.0, 1.0, 0.0, 0.0])
+    q_yaw = np.array([math.cos(grasp_yaw/2), 0, 0, math.sin(grasp_yaw/2)])
+    
+    w1, x1, y1, z1 = q_yaw
+    w2, x2, y2, z2 = q_down
+    target_quat = np.array([
+        w1*w2 - x1*x2 - y1*y2 - z1*z2,
+        w1*x2 + x1*w2 + y1*z2 - z1*y2,
+        w1*y2 - x1*z2 + y1*w2 + z1*x2,
+        w1*z2 + x1*y2 - y1*x2 + z1*w2
+    ])
+    
+    return banana_pos, target_quat
 
 def view_object_with_sensors(
     object_name,
@@ -371,38 +392,42 @@ def view_object_with_sensors(
     print("\n" + "="*80)
     print("[PHASE 2] MOVING TO BANANA TARGET")
     print("="*80)
-
-    banana_mat = sim.data.body("sample_object").xmat.reshape(3, 3)
-    banana_yaw = math.atan2(banana_mat[1, 0], banana_mat[0, 0])
-
-    q_flip = np.array([0.0, 1.0, 0.0, 0.0])
-    q_yaw = np.array([math.cos(banana_yaw/2), 0, 0, math.sin(banana_yaw/2)])
-
-    w1, x1, y1, z1 = q_yaw
-    w2, x2, y2, z2 = q_flip
-    target_quat = np.array([
-        w1*w2 - x1*x2 - y1*y2 - z1*z2,
-        w1*x2 + x1*w2 + y1*z2 - z1*y2,
-        w1*y2 - x1*z2 + y1*w2 + z1*x2,
-        w1*z2 + x1*y2 - y1*x2 + z1*w2
-    ])
-    banana_pos_static = sim.data.body("sample_object").xpos.copy()  
-    world_target = banana_pos_static + np.array([0.0, 0.0, 0.2])  # Move 10 cm above the banana
+    target_pos, target_quat = get_grasp_pose(sim, "sample_object")
+    pre_grasp_pos = target_pos + np.array([0.0, 0.0, 0.2])  # Move 20 cm above the banana
     
-    print(f"Banana World Pose: {banana_pos_static}")
-    print(f"Target Position (10cm above): {world_target}")
-    print(f"Target Quaternion (WXYZ): {target_quat}")
-    
-    success = controller.move_to_target(world_target, target_quat, verbose=True)
-    
-    if success:
-        print("\n[SUCCESS] Robot reached target!")
-    else:
-        print("\n[WARNING] Failed to reach target")
     
     # Get step count from controller
     step_count = controller.get_step_count()
+    print("[STATUS] Planning RRT to Pre-Grasp...")
+    success = controller.move_to_target(pre_grasp_pos, target_quat)
 
+    if success:
+        print("[STATUS] RRT Finished. Settling for precision...")
+        for _ in range(100):
+            sim.step()
+            time.sleep(0.005)
+        # === PHASE 3: CARTESIAN LINEAR (The Straight Descent) ===
+        print("[STATUS] Descending linearly...")
+        start_xyz = sim.data.body("hand").xpos.copy()
+        grasp_pose = target_pos + np.array([0.0, 0.0, 0.03])
+        controller.move_cartesian_linear(start_xyz, grasp_pose, target_quat, num_steps=100)            
+        for _ in range(100): 
+            sim.step()
+            time.sleep(0.005)
+
+        # === PHASE 4: GRASP ===
+        print("[GRASP] Closing gripper...")
+        sim.data.ctrl[7:] = 0.00
+        for _ in range(50):
+            sim.step()
+        # ===PHASE 5: POST GRASP ===
+        print("[STATUS] Lifting banana...")
+        current_pose = sim.data.body("hand").xpos.copy()
+        post_grasp_lift = current_pose + np.array([0.0, 0.0, 0.2]) 
+        controller.move_cartesian_linear(current_pose, post_grasp_lift, target_quat, num_steps=100)
+        for _ in range(50):
+            sim.step()
+            time.sleep(0.005)
     try: 
         while True:
             # Hold current position (robot stays where it is)

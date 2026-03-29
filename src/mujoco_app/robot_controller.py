@@ -103,9 +103,7 @@ class RobotController:
                 self.sim.step()
                 
                 time.sleep(0.005) 
-                if hasattr(self.sim, 'viewer') and self.sim.viewer:
-                    self.sim.viewer.sync()
-                
+             
                 self.step_count += 1
                 
             last_waypoint = next_waypoint.copy()
@@ -124,7 +122,30 @@ class RobotController:
             
             if self.logger and self.step_count % self.log_interval == 0:
                 self.logger.log_frame(save_images=False)
-    
+
+
+    def move_cartesian_linear(self, start_pos, target_pos, target_quat, num_steps=50):
+        print(f"[IK] Executing Cartesian Linear move over {num_steps} steps...")
+        
+        for i in range(num_steps):
+            alpha = i / (num_steps - 1)
+            
+            current_target_pos = (1 - alpha) * start_pos + alpha * target_pos
+
+            q_step, success = self.ik_solver.solve(
+                current_target_pos, 
+                target_quat, 
+                q_init=self.data.qpos[:7]
+            )
+            
+            if success:
+                self.data.ctrl[:7] = q_step[:7]
+                self.sim.step()
+                time.sleep(0.005)
+
+            else:
+                print(f"Warning: IK failed at step {i} of linear path")
+
     def reset_step_count(self):
         self.step_count = 0
     
