@@ -102,9 +102,9 @@ class SceneBuilder:
         self._add_basket(table_center)
         self._add_objects(table_center)
         self._add_grasp_object(table_center)
-        # moving obstacles last
-        if self.obstacle_toggle:
-            self._add_moving_obstacles(table_center)
+        # # moving obstacles last
+        # if self.obstacle_toggle:
+        #     self._add_moving_obstacles(table_center)
 
         model, data = self._finalize_model(robot_info.base_dir)
         self.ids.setdefault("extra_camera_specs", robot_info.extra_specs)
