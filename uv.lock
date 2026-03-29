@@ -768,9 +768,6 @@ dev = [
     { name = "pytest" },
     { name = "ruff" },
 ]
-perception = [
-    { name = "open3d" },
-]
 
 [package.metadata]
 requires-dist = [
@@ -780,7 +777,6 @@ requires-dist = [
     { name = "mujoco", specifier = ">=3.3.7" },
     { name = "numpy", specifier = ">=1.26.0" },
     { name = "open3d", specifier = ">=0.18.0" },
-    { name = "open3d", marker = "extra == 'perception'" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
@@ -789,7 +785,7 @@ requires-dist = [
     { name = "torch", marker = "sys_platform == 'linux' or sys_platform == 'win32'", specifier = ">=2.3.0", index = "https://download.pytorch.org/whl/cpu" },
     { name = "trimesh", specifier = ">=4.8.3" },
 ]
-provides-extras = ["dev", "perception"]
+provides-extras = ["dev"]
 
 [[package]]
 name = "mypy-extensions"
