@@ -394,9 +394,6 @@ def view_object_with_sensors(
     target_pos, target_quat = get_grasp_pose(sim, "sample_object")
     pre_grasp_pos = target_pos + np.array([0.0, 0.0, 0.2])  # Move 20 cm above the banana
     
-    
-    # Get step count from controller
-    step_count = controller.get_step_count()
     print("[STATUS] Planning RRT to Pre-Grasp...")
     success = controller.move_to_target(pre_grasp_pos, target_quat)
 
@@ -405,29 +402,65 @@ def view_object_with_sensors(
         for _ in range(150):
             sim.step()
             time.sleep(0.005)
-        # === PHASE 3: CARTESIAN LINEAR (The Straight Descent) ===
-        print("[STATUS] Descending linearly...")
-        start_xyz = sim.data.body("hand").xpos.copy()
-        grasp_pose = target_pos + np.array([0.0, 0.0, 0.07])
-        controller.move_cartesian_linear(start_xyz, grasp_pose, target_quat, num_steps=200)            
-        for _ in range(50): 
-            sim.step()
-            time.sleep(0.005)
-
-        # === PHASE 4: GRASP ===
-        print("[GRASP] Closing gripper...")
-        sim.data.ctrl[7:] = 0.00
-        for _ in range(50): 
-            sim.step()
+    
+    # === PHASE 3: CARTESIAN LINEAR (The Straight Descent) ===
+    print("[STATUS] Descending linearly...")
+    start_xyz = sim.data.body("hand").xpos.copy()
+    grasp_pose = target_pos + np.array([0.0, 0.0, 0.07])
+    controller.move_cartesian_linear(start_xyz, grasp_pose, target_quat, num_steps=200)            
+    for _ in range(50): 
+        sim.step()
         time.sleep(0.005)
-        # ===PHASE 5: POST GRASP ===
-        print("[STATUS] Lifting banana...")
-        current_pose = sim.data.body("hand").xpos.copy()
-        post_grasp_lift = current_pose + np.array([0.0, 0.0, 0.2]) 
-        controller.move_cartesian_linear(current_pose, post_grasp_lift, target_quat, num_steps=200)
-        for _ in range(50):
+
+    # === PHASE 4: GRASP ===
+    print("[GRASP] Closing gripper...")
+    sim.data.ctrl[7:] = 0.00
+    for _ in range(50): 
+        sim.step()
+    time.sleep(0.005)
+    # ===PHASE 5: POST GRASP ===
+    print("[STATUS] Lifting banana...")
+    current_pose = sim.data.body("hand").xpos.copy()
+    post_grasp_lift = current_pose + np.array([0.0, 0.0, 0.4]) 
+    controller.move_cartesian_linear(current_pose, post_grasp_lift, target_quat, num_steps=200)
+    for _ in range(5):
+        sim.step()
+        time.sleep(0.005)
+
+    # === PHASE 6: DEPOSIT IN BASKET ===
+    print("\n" + "="*80)
+    print("[PHASE 6] MOVING TO BASKET")
+    print("="*80)
+    basket_pos = sim.data.body("basket").xpos.copy()
+
+    basket_hover_pos = basket_pos + np.array([0.0, 0.0, 0.20]) 
+    basket_drop_pos = basket_pos + np.array([0.0, 0.0, 0.07]) 
+
+    print("[STATUS] Traveling to basket...")
+    success = controller.move_to_target(basket_hover_pos, target_quat)
+
+    if success:
+        print("[STATUS] Lowering into basket...")
+        start_drop_pos = sim.data.body("hand").xpos.copy()
+        controller.move_cartesian_linear(start_drop_pos, basket_drop_pos, target_quat, num_steps=100)
+        
+        for _ in range(50): 
             sim.step()
-            time.sleep(0.005)
+            time.sleep(0.002)
+
+        print("[GRASP] Releasing banana...")
+        sim.data.ctrl[7:] = 0.04  # Open the fingers
+        
+        for _ in range(150): 
+            sim.step()
+            time.sleep(0.002)
+
+        print("[SUCCESS] Mission complete. Returning to Home.")
+        controller.move_to_home(q_home)
+                
+        
+    # Get step count from controller
+    step_count = controller.get_step_count()
     try: 
         while True:
             # Hold current position (robot stays where it is)
