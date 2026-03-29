@@ -2,7 +2,9 @@
 Enhanced viewer that logs sensor data during simulation.
 Usage: python view_object_with_sensors.py YcbBanana [--save-sensors]
 """
-
+from math import dist
+import math
+import time
 import argparse
 import json
 import os
@@ -10,11 +12,15 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from fsspec import config
 import mujoco
+from mujoco import viewer
 import numpy as np
 import yaml
 
 from mujoco_app.mj_simulation import MjSim
+from mujoco_app.ik_solver import IKSolver
+from mujoco_app.robot_controller import RobotController
 
 
 def check_object_in_basket(sim: MjSim) -> dict:
@@ -314,7 +320,9 @@ def view_object_with_sensors(
     # Initialize simulation
     sim = MjSim(config)
     sim.reset()
-
+    # Define home position
+    q_home = np.array([0, -0.785, 0, -2.356, 0, 1.571, 0.785])
+    
     # Setup sensor logger if requested
     logger = None
     if save_sensors:
@@ -322,6 +330,17 @@ def view_object_with_sensors(
         log_dir = project_root / "sensor_logs" / f"{object_name}_{timestamp}"
         logger = SensorLogger(sim, log_dir)
         print(f"  Logging to: {log_dir}\n")
+    
+    # Create robot controller
+    ik = IKSolver(model=sim.model, data=sim.data, ee_body="hand", joint_dofs=7)
+    controller = RobotController(
+        model=sim.model,
+        data=sim.data,
+        sim=sim,
+        ik_solver=ik,
+        logger=logger,
+        log_interval=log_interval
+    )
 
     print(f"[OK] {object_name} loaded!")
     print("  - Textures should be visible")
@@ -333,18 +352,62 @@ def view_object_with_sensors(
     if save_sensors:
         print(f"   [LOG] Sensor Logging - saving every {log_interval} frames")
     print("\nViewer is running...")
+    time.sleep(2)  # Give user time to adjust viewer before simulation starts
 
     # Track object slip detection
     slip_warning_count = 0
     last_slip_warning_time = 0.0
-    step_count = 0
     last_basket_check_time = 0.0
     basket_check_interval = 2.0  # Check every 2 seconds
 
-    try:
-        # Keep simulation running with GUI open
+    # === PHASE 1: MOVE TO HOME ===
+    print("\n" + "="*80)
+    print("[PHASE 1] MOVING TO HOME POSITION")
+    print("="*80)
+    controller.move_to_home(q_home, verbose=True)
+    time.sleep(1)  # Pause briefly at home position
+
+    # === PHASE 2: MOVE TO BANANA ===
+    print("\n" + "="*80)
+    print("[PHASE 2] MOVING TO BANANA TARGET")
+    print("="*80)
+
+    banana_mat = sim.data.body("sample_object").xmat.reshape(3, 3)
+    banana_yaw = math.atan2(banana_mat[1, 0], banana_mat[0, 0])
+
+    q_flip = np.array([0.0, 1.0, 0.0, 0.0])
+    q_yaw = np.array([math.cos(banana_yaw/2), 0, 0, math.sin(banana_yaw/2)])
+
+    w1, x1, y1, z1 = q_yaw
+    w2, x2, y2, z2 = q_flip
+    target_quat = np.array([
+        w1*w2 - x1*x2 - y1*y2 - z1*z2,
+        w1*x2 + x1*w2 + y1*z2 - z1*y2,
+        w1*y2 - x1*z2 + y1*w2 + z1*x2,
+        w1*z2 + x1*y2 - y1*x2 + z1*w2
+    ])
+    banana_pos_static = sim.data.body("sample_object").xpos.copy()  
+    world_target = banana_pos_static + np.array([0.0, 0.0, 0.2])  # Move 10 cm above the banana
+    
+    print(f"Banana World Pose: {banana_pos_static}")
+    print(f"Target Position (10cm above): {world_target}")
+    print(f"Target Quaternion (WXYZ): {target_quat}")
+    
+    success = controller.move_to_target(world_target, target_quat, verbose=True)
+    
+    if success:
+        print("\n[SUCCESS] Robot reached target!")
+    else:
+        print("\n[WARNING] Failed to reach target")
+    
+    # Get step count from controller
+    step_count = controller.get_step_count()
+
+    try: 
         while True:
+            # Hold current position (robot stays where it is)
             sim.step()
+            time.sleep(0.01)
             step_count += 1
 
             # Log sensors at specified interval
