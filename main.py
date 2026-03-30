@@ -228,7 +228,11 @@ def main(config_path: str):
             )
         )
     evaluation = Evaluation(experiment_runs)
-    print(evaluation.format_overview())
+    evaluation_report = evaluation.format_overview()
+    output_path = Path("evaluation_results") / "evaluation_overview.txt"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(evaluation_report + "\n", encoding="utf-8")
+    print(evaluation_report)
 
 
 if __name__ == "__main__":
