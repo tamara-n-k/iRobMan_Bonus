@@ -1,22 +1,32 @@
+from typing import Tuple
+
 import numpy as np
 import time
+
+from mujoco_app.evaluation import ExpData
 from mujoco_app.grasp import estimate_top_down_grasp  # Correct function name
 from mujoco_app.transformations import quat_xyzw_to_wxyz
 from mujoco_app.perception import build_observation, estimate_grasp_object_pose
+
 
 class PickPlaceTask:
     def __init__(self, sim, controller):
         self.sim = sim
         self.controller = controller
-        
-    def run(self, q_home, object_name="sample_object", basket_body_name="basket"):
+
+    def run(self, q_home, asset_name, object_name="sample_object", basket_body_name="basket") -> Tuple[bool, ExpData]:
+        exp_data = ExpData(sim=self.sim, body_name=object_name, asset_name=asset_name)
 
         print("\n[GEOMETRY] Calculating grasp pose from mesh...")
         self.controller.move_to_home(q_home)
         self._settle(50)
 
+        # --- Perception ---
         obs = build_observation(self.sim, self.sim.cfg)
         object_pose = estimate_grasp_object_pose(self.sim, obs, object_name)
+        exp_data.save_perception(object_pose)
+
+        # --- Grasp Genertion ---
         grasp_pose = estimate_top_down_grasp(self.sim, object_pose=object_pose)
 
         target_pos = grasp_pose.position.copy()
@@ -44,6 +54,7 @@ class PickPlaceTask:
 
             # === PHASE 4: GRASP ===
             print("[GRASP] Closing gripper...")
+            exp_data.save_height_before_grasp()
             self.sim.data.ctrl[7:] = 0.00
             self._settle(100)
 
@@ -52,6 +63,9 @@ class PickPlaceTask:
             current_pose = self.sim.data.body("hand").xpos.copy()
             post_grasp_lift = current_pose + np.array([0.0, 0.0, 0.3]) 
             self.controller.move_cartesian_linear(current_pose, post_grasp_lift, target_quat, num_steps=150)
+            
+            # --- Evaluation Grasp ---
+            exp_data.save_height_after_grasp()
 
             # === PHASE 6: DEPOSIT ===
             basket_pos = self.sim.data.body(basket_body_name).xpos.copy()
@@ -72,8 +86,8 @@ class PickPlaceTask:
                 self.controller.move_cartesian_linear(basket_drop, retreat_pose, target_quat, num_steps=80)
                 
                 self.controller.move_to_home(q_home)
-                return True
-        return False
+                return True, exp_data
+        return False, exp_data
 
     def _settle(self, steps):
         for _ in range(steps):

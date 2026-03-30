@@ -1,12 +1,13 @@
 import argparse
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import matplotlib.pyplot as plt
 import mujoco
 import numpy as np
 import yaml
 
+from mujoco_app.evaluation import Evaluation, ExpData
 from mujoco_app.ik_solver import IKSolver
 from mujoco_app.mj_simulation import MjSim
 from mujoco_app.robot_controller import RobotController
@@ -127,7 +128,11 @@ def show_rgb_depth(
 
 
 # Experiment runner example
-def runner(config: Dict[str, Any], num_experiments: int):
+def runner(
+    config: Dict[str, Any],
+    num_experiments: int,
+    asset_name: str
+) -> List[ExpData]:  # TODO collision detection und slip detection
     # Configure in YAML
     cam_cfg = config.get("mujoco", {}).get("camera", {})
     width = cam_cfg.get("width", 640)
@@ -137,6 +142,7 @@ def runner(config: Dict[str, Any], num_experiments: int):
     fovy = cam_cfg.get("fovy", 58.0)
 
     sim = MjSim(config)
+    experiment_runs: List[ExpData] = []
     for _ in range(num_experiments):
         sim.reset()
 
@@ -157,53 +163,63 @@ def runner(config: Dict[str, Any], num_experiments: int):
         
         # lower iterations per step for reaching the target pose
         print("Moving to target pose...")
-        for t in range(100000):
-            sim.step()
-            
-            task = PickPlaceTask(sim, controller)
-            try:
-                print("\n[MISSION CONTROL] Starting Pick-and-Place sequence...")
-                task.run(q_home=q_home, object_name="sample_object", basket_body_name="basket")
+        sim.step()
+        task = PickPlaceTask(sim, controller)
+        try:
+            print("\n[MISSION CONTROL] Starting Pick-and-Place sequence...")
+            task_success, exp_data = task.run(
+                q_home=q_home,
+                asset_name=asset_name,
+                object_name="sample_object",
+                basket_body_name="basket",
+            )
+            if task_success:
                 print("\n[MISSION CONTROL] Task completed successfully.")
-            except Exception as e:
-                print(f"\n[ERROR] Task interrupted: {e}")
+            else:
+                print("\n[MISSION CONTROL] Task did not complete.")
+        except Exception as e:
+            print(f"\n[ERROR] Task interrupted: {e}")
+            continue
 
-            step_count = controller.get_step_count()
-            # Showcasing some operations that can be done with the simulation
-            rgb, depth, intrinsic, extrinsic = sim.render_camera(
-                "side_cam",
-                width=width,
-                height=height,
-                near=near,
-                far=far,
-                fovy=fovy,
-            )
-            ee_body_name = sim.robot_settings.get("ee_body_name", "hand")
-            ee_body_id = mujoco.mj_name2id(
-                sim.model, mujoco.mjtObj.mjOBJ_BODY, ee_body_name
-            )
-            ee_pos = sim.data.xpos[ee_body_id].copy()
-            # Robot should not collide with obstacles
-            # This condition must be there
-            if sim.check_robot_obstacle_collision():
-                print("Collision!")
-                break
+        experiment_runs.append(exp_data)
+        # Robot should not collide with obstacles
+        # This condition must be there
+        if sim.check_robot_obstacle_collision():
+            print("Collision!")
+            break
     sim.close()
     print("Simulation completed.")
+    return experiment_runs
+
+def _get_objects() -> List[str]:
+    return [
+        "YcbBanana", "YcbCrackerBox", "YcbFoamBrick", "YcbMasterChefCan", "YcbMustardBottle",
+        "YcbPear", "YcbPowerDrill", "YcbStrawberry", "YcbTennisBall", "YcbTomatoSoupCan"
+    ]
 
 
-def main(config_path: str, object_name: str):
-    with open(config_path, "r") as f:
-        config = yaml.safe_load(f)
-        project_root = Path(__file__).parent.resolve()
-        object_xml = project_root / "assets" / "mujoco_objects" / object_name / "textured.xml"
+def main(config_path: str):
+    experiment_runs: List[ExpData] = []
+    for object_name in _get_objects():
+        with open(config_path, "r") as f:
+            config = yaml.safe_load(f)
+            project_root = Path(__file__).parent.resolve()
+            object_xml = project_root / "assets" / "mujoco_objects" / object_name / "textured.xml"
 
-        if not object_xml.exists():
-            print(f"[ERROR] Object XML not found: {object_xml}")
-            return
-        config["mujoco"]["grasp_object"]["xml"] = str(object_xml)
-    # You can make runner for one experiment
-    runner(config=config, num_experiments=1)
+            if not object_xml.exists():
+                print(f"[ERROR] Object XML not found: {object_xml}")
+                return
+            config["mujoco"]["grasp_object"]["xml"] = str(object_xml)
+        # You can make runner for one experiment
+        experiment_runs.extend(
+            runner(
+                config=config,
+                num_experiments=10,
+                asset_name=object_name
+            )
+        )
+    evaluation = Evaluation(experiment_runs)
+    print(evaluation.format_overview())
 
 
 if __name__ == "__main__":
@@ -211,6 +227,5 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config", type=str, default="configs/test_config_mj.yaml"
     )
-    parser.add_argument("--object", type=str, default="YcbBanana", help="Name of the object folder")
     args = parser.parse_args()
-    main(config_path=args.config, object_name=args.object)
+    main(config_path=args.config)
