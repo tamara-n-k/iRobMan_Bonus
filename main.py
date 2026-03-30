@@ -233,7 +233,7 @@ def main(config_path: str):
         experiment_runs.extend(
             runner(
                 config=config,
-                num_experiments=1,
+                num_experiments=10,
                 asset_name=object_name
             )
         )
