@@ -88,7 +88,6 @@ source .venv/bin/activate
 # To deactivate the virtual environment
 deactivate
 ```
-`uv sync` also installs the local GIGA inference runtime used by `src/mujoco_app/grasp.py`.
 
 **Platform-Specific Notes:**
 - **Windows**: UV installs to `%USERPROFILE%\.local\bin`. Restart PowerShell if `uv` isn't found.

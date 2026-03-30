@@ -11,11 +11,8 @@ dependencies = [
     "imageio>=2.37.0",
     "matplotlib>=3.10.8",
     "mujoco>=3.3.7",
-    "numpy>=1.26.0",
-    "open3d>=0.18.0",
     "pyyaml>=6.0.3",
     "scipy>=1.13.0",
-    "torch>=2.3.0",
     "trimesh>=4.8.3",
 ]
 
@@ -26,16 +23,6 @@ dev = [
   "black>=23.0.0",
   "ruff>=0.1.0",
 ]
-
-[tool.uv.sources]
-torch = [
-  { index = "pytorch-cpu", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
-]
-
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true
 
 # Platform-specific optional dependencies (examples)
 # Uncomment if you need platform-specific packages:
