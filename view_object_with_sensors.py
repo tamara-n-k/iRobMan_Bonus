@@ -2,7 +2,7 @@
 Enhanced viewer that logs sensor data during simulation.
 Usage: python view_object_with_sensors.py YcbBanana [--save-sensors]
 """
-import time
+
 import argparse
 import json
 import os
@@ -14,12 +14,7 @@ import mujoco
 import numpy as np
 import yaml
 
-from mujoco_app.grasp import estimate_top_down_grasp
 from mujoco_app.mj_simulation import MjSim
-from mujoco_app.ik_solver import IKSolver
-from mujoco_app.robot_controller import RobotController
-from mujoco_app.task_manager import PickPlaceTask
-from mujoco_app.transformations import quat_xyzw_to_wxyz
 
 
 def check_object_in_basket(sim: MjSim) -> dict:
@@ -282,14 +277,7 @@ class SensorLogger:
         print(f"\n[OK] Saved sensor logs to: {self.log_dir}")
         print(f"  - Logged {self.frame_count} frames")
         print(f"  - Object in basket: {in_basket_percentage:.1f}% of frames")
-    
-    
-def get_grasp_pose(sim, object_name="sample_object"):
-    del object_name
-    grasp_pose = estimate_top_down_grasp(sim)
-    target_pos = grasp_pose.position.copy()
-    target_quat = quat_xyzw_to_wxyz(grasp_pose.quaternion_xyzw)
-    return target_pos, target_quat, grasp_pose
+
 
 def view_object_with_sensors(
     object_name,
@@ -326,9 +314,7 @@ def view_object_with_sensors(
     # Initialize simulation
     sim = MjSim(config)
     sim.reset()
-    # Define home position
-    q_home = np.array([0, -0.785, 0, -2.356, 0, 1.571, 0.785])
-    
+
     # Setup sensor logger if requested
     logger = None
     if save_sensors:
@@ -336,17 +322,6 @@ def view_object_with_sensors(
         log_dir = project_root / "sensor_logs" / f"{object_name}_{timestamp}"
         logger = SensorLogger(sim, log_dir)
         print(f"  Logging to: {log_dir}\n")
-    
-    # Create robot controller
-    ik = IKSolver(model=sim.model, data=sim.data, ee_body="hand", joint_dofs=7)
-    controller = RobotController(
-        model=sim.model,
-        data=sim.data,
-        sim=sim,
-        ik_solver=ik,
-        logger=logger,
-        log_interval=log_interval
-    )
 
     print(f"[OK] {object_name} loaded!")
     print("  - Textures should be visible")
@@ -358,28 +333,18 @@ def view_object_with_sensors(
     if save_sensors:
         print(f"   [LOG] Sensor Logging - saving every {log_interval} frames")
     print("\nViewer is running...")
-    time.sleep(2)  # Give user time to adjust viewer before simulation starts
 
     # Track object slip detection
     slip_warning_count = 0
     last_slip_warning_time = 0.0
+    step_count = 0
     last_basket_check_time = 0.0
     basket_check_interval = 2.0  # Check every 2 seconds
-    giga_path = project_root / "giga" / "giga_pile.pt"
-    task = PickPlaceTask(sim, controller)
-    try:
-        print("\n[MISSION CONTROL] Starting Pick-and-Place sequence...")
-        task.run(q_home=q_home, object_name="sample_object", basket_body_name="basket")
-        print("\n[MISSION CONTROL] Task completed successfully.")
-    except Exception as e:
-        print(f"\n[ERROR] Task interrupted: {e}")
 
-    step_count = controller.get_step_count()
-    try: 
+    try:
+        # Keep simulation running with GUI open
         while True:
-            # Hold current position (robot stays where it is)
             sim.step()
-            time.sleep(0.01)
             step_count += 1
 
             # Log sensors at specified interval

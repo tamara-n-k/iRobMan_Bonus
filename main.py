@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 from typing import Any, Dict
 
 import matplotlib.pyplot as plt
@@ -6,7 +7,10 @@ import mujoco
 import numpy as np
 import yaml
 
+from mujoco_app.ik_solver import IKSolver
 from mujoco_app.mj_simulation import MjSim
+from mujoco_app.robot_controller import RobotController
+from mujoco_app.task_manager import PickPlaceTask
 
 
 # Metric for success
@@ -139,12 +143,32 @@ def runner(config: Dict[str, Any], num_experiments: int):
         # For sim stabilization
         for _ in range(1000):
             sim.step()
+        # Define home position
+        q_home = np.array([0, -0.785, 0, -2.356, 0, 1.571, 0.785])
 
+        # Create robot controller
+        ik = IKSolver(model=sim.model, data=sim.data, ee_body="hand", joint_dofs=7)
+        controller = RobotController(
+            model=sim.model,
+            data=sim.data,
+            sim=sim,
+            ik_solver=ik
+        )
+        
         # lower iterations per step for reaching the target pose
         print("Moving to target pose...")
         for t in range(100000):
             sim.step()
+            
+            task = PickPlaceTask(sim, controller)
+            try:
+                print("\n[MISSION CONTROL] Starting Pick-and-Place sequence...")
+                task.run(q_home=q_home, object_name="sample_object", basket_body_name="basket")
+                print("\n[MISSION CONTROL] Task completed successfully.")
+            except Exception as e:
+                print(f"\n[ERROR] Task interrupted: {e}")
 
+            step_count = controller.get_step_count()
             # Showcasing some operations that can be done with the simulation
             rgb, depth, intrinsic, extrinsic = sim.render_camera(
                 "side_cam",
@@ -168,11 +192,18 @@ def runner(config: Dict[str, Any], num_experiments: int):
     print("Simulation completed.")
 
 
-def main(config_path: str):
+def main(config_path: str, object_name: str):
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
+        project_root = Path(__file__).parent.resolve()
+        object_xml = project_root / "assets" / "mujoco_objects" / object_name / "textured.xml"
+
+        if not object_xml.exists():
+            print(f"[ERROR] Object XML not found: {object_xml}")
+            return
+        config["mujoco"]["grasp_object"]["xml"] = str(object_xml)
     # You can make runner for one experiment
-    runner(config, 10)
+    runner(config=config, num_experiments=1)
 
 
 if __name__ == "__main__":
@@ -180,5 +211,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config", type=str, default="configs/test_config_mj.yaml"
     )
+    parser.add_argument("--object", type=str, default="YcbBanana", help="Name of the object folder")
     args = parser.parse_args()
-    main(config_path=args.config)
+    main(config_path=args.config, object_name=args.object)
