@@ -2,8 +2,6 @@
 Enhanced viewer that logs sensor data during simulation.
 Usage: python view_object_with_sensors.py YcbBanana [--save-sensors]
 """
-from math import dist
-import math
 import time
 import argparse
 import json
@@ -12,15 +10,15 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from fsspec import config
 import mujoco
-from mujoco import viewer
 import numpy as np
 import yaml
 
+from mujoco_app.grasp import estimate_top_down_grasp
 from mujoco_app.mj_simulation import MjSim
 from mujoco_app.ik_solver import IKSolver
 from mujoco_app.robot_controller import RobotController
+from mujoco_app.transformations import quat_xyzw_to_wxyz
 
 
 def check_object_in_basket(sim: MjSim) -> dict:
@@ -286,25 +284,11 @@ class SensorLogger:
     
     
 def get_grasp_pose(sim, object_name="sample_object"):
-    banana_pos = sim.data.body(object_name).xpos.copy()
-    banana_mat = sim.data.body(object_name).xmat.reshape(3, 3)
-    
-    banana_yaw = math.atan2(banana_mat[1, 0], banana_mat[0, 0])
-    grasp_yaw = banana_yaw + (math.pi / 2)
-
-    q_down = np.array([0.0, 1.0, 0.0, 0.0])
-    q_yaw = np.array([math.cos(grasp_yaw/2), 0, 0, math.sin(grasp_yaw/2)])
-    
-    w1, x1, y1, z1 = q_yaw
-    w2, x2, y2, z2 = q_down
-    target_quat = np.array([
-        w1*w2 - x1*x2 - y1*y2 - z1*z2,
-        w1*x2 + x1*w2 + y1*z2 - z1*y2,
-        w1*y2 - x1*z2 + y1*w2 + z1*x2,
-        w1*z2 + x1*y2 - y1*x2 + z1*w2
-    ])
-    
-    return banana_pos, target_quat
+    del object_name
+    grasp_pose = estimate_top_down_grasp(sim)
+    target_pos = grasp_pose.position.copy()
+    target_quat = quat_xyzw_to_wxyz(grasp_pose.quaternion_xyzw)
+    return target_pos, target_quat, grasp_pose
 
 def view_object_with_sensors(
     object_name,
@@ -388,10 +372,12 @@ def view_object_with_sensors(
     controller.move_to_home(q_home, verbose=True)
 
     # === PHASE 2: MOVE TO BANANA ===
+    sim.data.ctrl[7:] = 0.04
     print("\n" + "="*80)
     print("[PHASE 2] MOVING TO BANANA TARGET")
     print("="*80)
-    target_pos, target_quat = get_grasp_pose(sim, "sample_object")
+    target_pos, target_quat, grasp_pose = get_grasp_pose(sim, "sample_object")
+    print("[GRASP] target_pos={}".format(target_pos.round(4).tolist()))
     pre_grasp_pos = target_pos + np.array([0.0, 0.0, 0.2])  # Move 20 cm above the banana
     
     print("[STATUS] Planning RRT to Pre-Grasp...")
@@ -406,8 +392,7 @@ def view_object_with_sensors(
     # === PHASE 3: CARTESIAN LINEAR (The Straight Descent) ===
     print("[STATUS] Descending linearly...")
     start_xyz = sim.data.body("hand").xpos.copy()
-    grasp_pose = target_pos + np.array([0.0, 0.0, 0.07])
-    controller.move_cartesian_linear(start_xyz, grasp_pose, target_quat, num_steps=200)            
+    controller.move_cartesian_linear(start_xyz, target_pos, target_quat, num_steps=200)
     for _ in range(50): 
         sim.step()
         time.sleep(0.005)
