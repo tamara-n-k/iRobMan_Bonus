@@ -193,6 +193,16 @@ def runner(
             exp_data.save_termination_reason("error")
 
         basket_status = check_object_in_basket(sim)
+        if basket_status["in_basket"]:
+            print("\n" + "=" * 80)
+            print(
+                f"\nNice! Object is in the basket! (t={sim.data.time:.1f}s)"
+            )
+            print(
+                f"   Position: [{basket_status['object_pos'][0]:.3f}, "
+                f"{basket_status['object_pos'][1]:.3f}, "
+                f"{basket_status['object_pos'][2]:.3f}]"
+            )
         exp_data.save_final_basket_status(basket_status)
         experiment_runs.append(exp_data)
         
