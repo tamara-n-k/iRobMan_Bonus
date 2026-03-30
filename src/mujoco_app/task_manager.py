@@ -1,12 +1,9 @@
-from typing import Tuple
-
 import numpy as np
-import time
 
 from mujoco_app.evaluation import ExpData
 from mujoco_app.grasp import estimate_top_down_grasp
-from mujoco_app.transformations import quat_xyzw_to_wxyz
 from mujoco_app.perception import build_observation, estimate_grasp_object_pose
+from mujoco_app.transformations import quat_xyzw_to_wxyz
 
 
 class PickPlaceTask:
@@ -14,8 +11,13 @@ class PickPlaceTask:
         self.sim = sim
         self.controller = controller
 
-    def run(self, q_home, asset_name, object_name="sample_object", basket_body_name="basket") -> Tuple[bool, ExpData]:
-        exp_data = ExpData(sim=self.sim, body_name=object_name, asset_name=asset_name)
+    def run(
+        self,
+        q_home,
+        exp_data: ExpData,
+        object_name="sample_object",
+        basket_body_name="basket",
+    ) -> bool:
         print("\n[GEOMETRY] Calculating grasp pose from mesh...")
         self.controller.move_to_home(q_home)
         self._settle(50)
@@ -87,11 +89,11 @@ class PickPlaceTask:
                 self.controller.move_cartesian_linear(basket_drop, retreat_pose, target_quat, num_steps=80)
                 
                 self.controller.move_to_home(q_home)
-                return True, exp_data
+                return True
             exp_data.save_move_to_basket_success(False)
-        return False, exp_data
+        return False
 
     def _settle(self, steps):
         for _ in range(steps):
             self.sim.step()
-            time.sleep(0.002)
+            #time.sleep(0.002)

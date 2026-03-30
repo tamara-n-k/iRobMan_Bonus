@@ -18,10 +18,12 @@ class ExpData:
         sim: Any,
         body_name: str,
         asset_name: str,
+        run_index: int,
     ) -> None:
         self.sim = sim
         self.body_name = body_name
         self.asset_name = asset_name
+        self.run_index = run_index
         self.perception_estimated_pose: Optional[Pose] = None
         self.perception_ground_truth_pose: Optional[Pose] = None
         self._height_before_grasp: Optional[float] = None
@@ -29,6 +31,7 @@ class ExpData:
         self._move_to_basket_success = False
         self._gripper_contact_at_basket: Optional[bool] = None
         self._final_basket_status: Optional[dict[str, Any]] = None
+        self._termination_reason: Optional[str] = None
 
     def save_perception(self, estimated_pose: Pose) -> None:
         """Store the estimated pose and current ground truth for this run."""
@@ -84,6 +87,12 @@ class ExpData:
         self._final_basket_status = basket_status
         return self._final_basket_status
 
+    def save_termination_reason(self, termination_reason: str) -> str:
+        """Store why a run ended early."""
+
+        self._termination_reason = termination_reason
+        return self._termination_reason
+
     @property
     def height_before_grasp(self) -> Optional[float]:
         return self._height_before_grasp
@@ -103,6 +112,14 @@ class ExpData:
     @property
     def final_basket_status(self) -> Optional[dict[str, Any]]:
         return self._final_basket_status
+
+    @property
+    def termination_reason(self) -> Optional[str]:
+        return self._termination_reason
+
+    @property
+    def terminated_due_to_collision(self) -> bool:
+        return self._termination_reason == "collision"
 
     def _object_height(self) -> float:
         return float(self.sim.data.body(self.body_name).xpos[2])
@@ -125,13 +142,17 @@ class Evaluation:
         )
         self.grasp_height_threshold = grasp_height_threshold
 
-    def overview(self) -> dict[str, dict[str, dict[str, float | int | None]]]:
+    def overview(self) -> dict[str, dict[str, Any]]:
         """Return aggregated metrics for every evaluated object."""
 
         results: DefaultDict[str, Dict[str, list[dict[str, Any]]]] = defaultdict(
-            lambda: {"perception": [], "grasp": [], "place": []}
+            lambda: {"perception": [], "grasp": [], "place": [], "termination": []}
         )
         for exp_data in self.experiment_runs:
+            results[exp_data.asset_name]["termination"].append(
+                self._evaluate_termination(exp_data)
+            )
+
             perception_result = self._evaluate_perception(exp_data)
             if perception_result is not None:
                 results[exp_data.asset_name]["perception"].append(
@@ -146,15 +167,21 @@ class Evaluation:
             if place_result is not None:
                 results[exp_data.asset_name]["place"].append(place_result)
 
-        summary: dict[str, dict[str, dict[str, float | int | None]]] = {}
+        summary: dict[str, dict[str, Any]] = {}
         for object_name, stage_results in results.items():
             perception_results = stage_results["perception"]
             grasp_results = stage_results["grasp"]
             place_results = stage_results["place"]
             summary[object_name] = {
                 "perception": self._summarize_perception(perception_results),
+                "perception_runs": sorted(
+                    perception_results, key=lambda item: item["run_index"]
+                ),
                 "grasp": self._summarize_grasp(grasp_results),
                 "place": self._summarize_place(place_results),
+                "termination": self._summarize_termination(
+                    stage_results["termination"]
+                ),
             }
         return summary
 
@@ -168,8 +195,10 @@ class Evaluation:
         lines = ["\n=== Evaluation Overview ==="]
         for object_name in sorted(summary):
             perception = summary[object_name]["perception"]
+            perception_runs = summary[object_name]["perception_runs"]
             grasp = summary[object_name]["grasp"]
             place = summary[object_name]["place"]
+            termination = summary[object_name]["termination"]
             lines.append(f"{object_name}:")
             lines.append(
                 "  Perception -> "
@@ -180,6 +209,20 @@ class Evaluation:
                 "avg_orientation_error="
                 f"{self._format_metric(perception['avg_orientation_error_deg'], '.2f')} deg"
             )
+            if perception_runs:
+                lines.append("  Perception Runs:")
+                for run_result in perception_runs:
+                    lines.append(
+                        "    "
+                        f"run={run_result['run_index']}, "
+                        "position_error="
+                        f"{self._format_metric(run_result['position_error'], '.4f')} m, "
+                        "orientation_error="
+                        f"{self._format_metric(run_result['orientation_error_deg'], '.2f')} deg, "
+                        f"success={run_result['success']}"
+                    )
+            else:
+                lines.append("  Perception Runs: n/a")
             lines.append(
                 "  Grasp      -> "
                 f"runs={grasp['num_trials']}, "
@@ -200,6 +243,18 @@ class Evaluation:
                 f"{self._format_metric(place['contact_rate'], '.2%')}, "
                 "in_basket_rate="
                 f"{self._format_metric(place['in_basket_rate'], '.2%')}"
+            )
+            lines.append(
+                "  Termination -> "
+                f"runs={termination['num_trials']}, "
+                f"collision_terminated={termination['collision_terminated']}, "
+                "collision_termination_rate="
+                f"{self._format_metric(termination['collision_termination_rate'], '.2%')}"
+            )
+            collision_runs = termination["collision_run_indices"]
+            lines.append(
+                "  Collision Runs -> "
+                + (", ".join(str(run_index) for run_index in collision_runs) if collision_runs else "none")
             )
         return "\n".join(lines)
 
@@ -227,9 +282,20 @@ class Evaluation:
             <= self.perception_orientation_tolerance_deg
         )
         return {
+            "run_index": exp_data.run_index,
             "success": success,
             "position_error": position_error,
             "orientation_error_deg": orientation_error_deg,
+        }
+
+    def _evaluate_termination(
+        self,
+        exp_data: ExpData,
+    ) -> dict[str, Any]:
+        return {
+            "run_index": exp_data.run_index,
+            "termination_reason": exp_data.termination_reason,
+            "terminated_due_to_collision": exp_data.terminated_due_to_collision,
         }
 
     def _evaluate_grasp(
@@ -350,6 +416,30 @@ class Evaluation:
             "in_basket_rate": float(
                 np.mean([item["in_basket"] for item in results])
             ),
+        }
+
+    def _summarize_termination(
+        self,
+        results: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        if not results:
+            return {
+                "num_trials": 0,
+                "collision_terminated": 0,
+                "collision_termination_rate": 0.0,
+                "collision_run_indices": [],
+            }
+
+        collision_run_indices = [
+            item["run_index"]
+            for item in results
+            if item["terminated_due_to_collision"]
+        ]
+        return {
+            "num_trials": len(results),
+            "collision_terminated": len(collision_run_indices),
+            "collision_termination_rate": len(collision_run_indices) / len(results),
+            "collision_run_indices": collision_run_indices,
         }
 
     @staticmethod

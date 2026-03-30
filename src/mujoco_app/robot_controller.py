@@ -7,6 +7,7 @@ import time
 import mujoco
 from mujoco_app.ik_solver import IKSolver
 from mujoco_app.motion_planner import RRTPlanner
+from mujoco_app.exceptions import CollisionDetectedError
 
 
 class RobotController:
@@ -103,9 +104,8 @@ class RobotController:
                 for _ in range(5): 
                     self.sim.step()
                     if self.sim.check_robot_obstacle_collision():
-                        print("Collision!")
-                        break
-                time.sleep(0.005)
+                        raise CollisionDetectedError()
+                #time.sleep(0.005)
                 self.step_count += 1
                 
             last_waypoint = next_waypoint.copy()
@@ -121,9 +121,8 @@ class RobotController:
             for _ in range(5): 
                 self.sim.step()
                 if self.sim.check_robot_obstacle_collision():
-                    print("Collision!")
-                    break
-            time.sleep(0.005)
+                    raise CollisionDetectedError()
+            #time.sleep(0.005)
             self.step_count += 1
             
             if self.logger and self.step_count % self.log_interval == 0:
@@ -149,9 +148,8 @@ class RobotController:
                 for _ in range(5): 
                     self.sim.step()
                     if self.sim.check_robot_obstacle_collision():
-                        print("Collision!")
-                        break
-                time.sleep(0.005)
+                        raise CollisionDetectedError()
+                #time.sleep(0.005)
                 self.step_count += 1
 
             else:

@@ -8,6 +8,7 @@ import numpy as np
 import yaml
 
 from mujoco_app.evaluation import Evaluation, ExpData
+from mujoco_app.exceptions import CollisionDetectedError
 from mujoco_app.ik_solver import IKSolver
 from mujoco_app.mj_simulation import MjSim
 from mujoco_app.robot_controller import RobotController
@@ -143,7 +144,7 @@ def runner(
 
     sim = MjSim(config)
     experiment_runs: List[ExpData] = []
-    for _ in range(num_experiments):
+    for run_index in range(1, num_experiments + 1):
         sim.reset()
 
         # For sim stabilization
@@ -165,11 +166,18 @@ def runner(
         print("Moving to target pose...")
         sim.step()
         task = PickPlaceTask(sim, controller)
+        exp_data = ExpData(
+            sim=sim,
+            body_name="sample_object",
+            asset_name=asset_name,
+            run_index=run_index,
+        )
+        task_success = False
         try:
             print("\n[MISSION CONTROL] Starting Pick-and-Place sequence...")
-            task_success, exp_data = task.run(
+            task_success = task.run(
                 q_home=q_home,
-                asset_name=asset_name,
+                exp_data=exp_data,
                 object_name="sample_object",
                 basket_body_name="basket",
             )
@@ -177,9 +185,12 @@ def runner(
                 print("\n[MISSION CONTROL] Task completed successfully.")
             else:
                 print("\n[MISSION CONTROL] Task did not complete.")
+        except CollisionDetectedError as ce:
+            exp_data.save_termination_reason("collision")
+            print(f"\n[ERROR] Task interrupted: {ce}")
         except Exception as e:
             print(f"\n[ERROR] Task interrupted: {e}")
-            continue
+            exp_data.save_termination_reason("error")
 
         basket_status = check_object_in_basket(sim)
         exp_data.save_final_basket_status(basket_status)
@@ -212,7 +223,7 @@ def main(config_path: str):
         experiment_runs.extend(
             runner(
                 config=config,
-                num_experiments=10,
+                num_experiments=1,
                 asset_name=object_name
             )
         )
