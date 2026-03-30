@@ -82,8 +82,8 @@ class PickPlaceTask:
                 exp_data.save_gripper_contact_at_basket()
                 
                 print("[PLACE] Releasing...")
-                self.sim.data.ctrl[7:] = 0.04 
-                self._settle(100)
+                self._move_gripper(target_width=0.04, num_steps=100)
+                self._settle(50)
 
                 # Retreat
                 retreat_pose = basket_drop + np.array([0.0, 0.0, 0.2])
