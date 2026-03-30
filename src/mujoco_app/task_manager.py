@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 from mujoco_app.evaluation import ExpData
 from mujoco_app.grasp import estimate_top_down_grasp
@@ -41,7 +42,7 @@ class PickPlaceTask:
         print(f"[STATUS] Target Acquired at: {target_pos.round(3)}")
         self.sim.data.ctrl[7:] = target_width
         
-        pre_grasp_pos = target_pos + np.array([0.0, 0.0, 0.15])
+        pre_grasp_pos = target_pos + np.array([0.0, 0.0, 0.4])
         success = self.controller.move_to_target(pre_grasp_pos, target_quat)
 
         if success:
@@ -50,13 +51,13 @@ class PickPlaceTask:
             # === PHASE 3: DESCENT ===
             print("[PICK] Descending to mesh-calculated pose...")
             start_xyz = self.sim.data.body("hand").xpos.copy()
-            self.controller.move_cartesian_linear(start_xyz, target_pos, target_quat, num_steps=150)
-            self._settle(50)
+            self.controller.move_cartesian_linear(start_xyz, target_pos, target_quat, num_steps=400)
+            self._settle(100)
 
             # === PHASE 4: GRASP ===
             print("[GRASP] Closing gripper...")
             exp_data.save_height_before_grasp()
-            self.sim.data.ctrl[7:] = 0.00
+            self._move_gripper(target_width=0.0, num_steps=100)
             self._settle(100)
 
             # === PHASE 5: LIFT ===
@@ -70,8 +71,8 @@ class PickPlaceTask:
 
             # === PHASE 6: DEPOSIT ===
             basket_pos = self.sim.data.body(basket_body_name).xpos.copy()
-            basket_hover = basket_pos + np.array([0.0, 0.0, 0.25]) 
-            basket_drop = basket_pos + np.array([0.0, 0.0, 0.12]) 
+            basket_hover = basket_pos + np.array([0.0, 0.0, 0.4]) 
+            basket_drop = basket_pos + np.array([0.0, 0.0, 0.2]) 
 
             if self.controller.move_to_target(basket_hover, target_quat):
                 curr_pose = self.sim.data.body("hand").xpos.copy()
@@ -97,3 +98,13 @@ class PickPlaceTask:
         for _ in range(steps):
             self.sim.step()
             #time.sleep(0.002)
+
+    def _move_gripper(self, target_width, num_steps=100):
+        current_width = self.sim.data.ctrl[7]
+        widths = np.linspace(current_width, target_width, num_steps)
+        
+        for w in widths:
+            self.sim.data.ctrl[7:] = w
+            for _ in range(5):
+                self.sim.step()
+            time.sleep(0.001)
