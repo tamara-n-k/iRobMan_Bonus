@@ -2,6 +2,7 @@ import numpy as np
 import time
 from mujoco_app.grasp import estimate_top_down_grasp  # Correct function name
 from mujoco_app.transformations import quat_xyzw_to_wxyz
+from mujoco_app.perception import build_observation, estimate_grasp_object_pose
 
 class PickPlaceTask:
     def __init__(self, sim, controller):
@@ -14,7 +15,9 @@ class PickPlaceTask:
         self.controller.move_to_home(q_home)
         self._settle(50)
 
-        grasp_pose = estimate_top_down_grasp(self.sim, body_name=object_name)
+        obs = build_observation(self.sim, self.sim.cfg)
+        object_pose = estimate_grasp_object_pose(self.sim, obs, object_name)
+        grasp_pose = estimate_top_down_grasp(self.sim, object_pose=object_pose)
 
         target_pos = grasp_pose.position.copy()
         print(f"[GEOMETRY] Estimated grasp position: {target_pos.round(3)}")

@@ -11,7 +11,6 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 import trimesh
 
-from mujoco_app.ground_truth import get_body_pose_ground_truth
 from mujoco_app.pose_types import Pose
 from mujoco_app.transformations import quat_xyzw_to_matrix
 
@@ -27,21 +26,16 @@ DEFAULT_GRIPPER_SITE_NAME = "gripper"
 
 def estimate_top_down_grasp(
     sim: "MjSim",
-    *,
-    body_name: str | None = None,
-    angle_step_deg: float = DEFAULT_ANGLE_STEP_DEG,
+    object_pose: Pose,
 ) -> Pose:
     """Estimate a top-down grasp from the configured object mesh.
 
-    The mesh is transformed into world coordinates using the current MuJoCo body
-    pose, projected into the top view, and scanned over yaw angles until the
-    minimum projected grasp width is found.
+    The mesh is transformed into world coordinates using the provided object
+    pose. The top view is then scanned over yaw angles until the minimum projected grasp width is
+    found.
     """
-    if angle_step_deg <= 0.0:
-        raise ValueError("angle_step_deg must be positive")
+    grasp_body_name = object_pose.body_name
 
-    grasp_body_name = body_name or sim.ids["grasp_object"]["body_name"]
-    object_pose = get_body_pose_ground_truth(sim, grasp_body_name)
     mesh_path = _resolve_object_mesh_path(sim)
     mesh_vertices = _load_mesh_vertices(mesh_path)
     world_vertices = _transform_vertices(
@@ -55,7 +49,7 @@ def estimate_top_down_grasp(
     yaw_rad = _find_min_width_yaw(
         world_vertices[:, :2],
         center_xy,
-        angle_step_deg,
+        DEFAULT_ANGLE_STEP_DEG,
     )
 
     grasp_center_position = np.array(

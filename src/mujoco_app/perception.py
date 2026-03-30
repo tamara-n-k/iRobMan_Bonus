@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 def estimate_grasp_object_pose(
     sim: "MjSim",
     observation: Mapping[str, Any],
+    body_name: str
 ) -> Pose:
     """Estimate the grasp object's 6D pose from a camera observation.
 
@@ -29,13 +30,39 @@ def estimate_grasp_object_pose(
     - `intrinsic`: 3x3 intrinsic matrix
     - `extrinsic`: 4x4 world-to-camera matrix
     """
-    body_name = sim.ids["grasp_object"]["body_name"]
     model_cloud = _load_object_model_point_cloud(sim)
     scene_cloud = _build_scene_point_cloud(observation)
     scene_cloud = _filter_scene_point_cloud(sim, scene_cloud, model_cloud)
     _save_debug_point_cloud(scene_cloud)
     transform = _estimate_transform_open3d(model_cloud, scene_cloud)
     return _pose_from_transform(body_name, transform)
+
+def build_observation(
+    sim: MjSim,
+    config: Dict[str, Any],
+    camera_name: str = "side_cam",
+) -> Dict[str, Any]:
+    cam_cfg = config.get("mujoco", {}).get("camera", {})
+    width = int(cam_cfg.get("width", 640))
+    height = int(cam_cfg.get("height", 480))
+    near = float(cam_cfg.get("near", 0.01))
+    far = float(cam_cfg.get("far", 5.0))
+    fovy = float(cam_cfg.get("fovy", 58.0))
+    rgb, depth, intrinsic, extrinsic = sim.render_camera(
+        camera_name,
+        width=width,
+        height=height,
+        near=near,
+        far=far,
+        fovy=fovy,
+    )
+    return {
+        "camera_name": camera_name,
+        "rgb": rgb,
+        "depth": depth,
+        "intrinsic": intrinsic,
+        "extrinsic": extrinsic,
+    }
 
 
 def _load_object_model_point_cloud(sim: "MjSim") -> o3d.geometry.PointCloud:

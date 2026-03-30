@@ -11,6 +11,7 @@ dependencies = [
     "imageio>=2.37.0",
     "matplotlib>=3.10.8",
     "mujoco>=3.3.7",
+    "open3d>=0.18.0",
     "pyyaml>=6.0.3",
     "scipy>=1.13.0",
     "trimesh>=4.8.3",
