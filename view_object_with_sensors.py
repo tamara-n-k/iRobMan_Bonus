@@ -18,6 +18,7 @@ from mujoco_app.grasp import estimate_top_down_grasp
 from mujoco_app.mj_simulation import MjSim
 from mujoco_app.ik_solver import IKSolver
 from mujoco_app.robot_controller import RobotController
+from mujoco_app.task_manager import PickPlaceTask
 from mujoco_app.transformations import quat_xyzw_to_wxyz
 
 
@@ -364,98 +365,15 @@ def view_object_with_sensors(
     last_slip_warning_time = 0.0
     last_basket_check_time = 0.0
     basket_check_interval = 2.0  # Check every 2 seconds
+    giga_path = project_root / "giga" / "giga_pile.pt"
+    task = PickPlaceTask(sim, controller)
+    try:
+        print("\n[MISSION CONTROL] Starting Pick-and-Place sequence...")
+        task.run(q_home=q_home, object_name="sample_object", basket_body_name="basket")
+        print("\n[MISSION CONTROL] Task completed successfully.")
+    except Exception as e:
+        print(f"\n[ERROR] Task interrupted: {e}")
 
-    # === PHASE 1: MOVE TO HOME ===
-    print("\n" + "="*80)
-    print("[PHASE 1] MOVING TO HOME POSITION")
-    print("="*80)
-    controller.move_to_home(q_home, verbose=True)
-
-    # === PHASE 2: MOVE TO BANANA ===
-    sim.data.ctrl[7:] = 0.04
-    print("\n" + "="*80)
-    print("[PHASE 2] MOVING TO BANANA TARGET")
-    print("="*80)
-    target_pos, target_quat, grasp_pose = get_grasp_pose(sim, "sample_object")
-    print("[GRASP] target_pos={}".format(target_pos.round(4).tolist()))
-    pre_grasp_pos = target_pos + np.array([0.0, 0.0, 0.2])  # Move 20 cm above the banana
-    
-    print("[STATUS] Planning RRT to Pre-Grasp...")
-    success = controller.move_to_target(pre_grasp_pos, target_quat)
-
-    if success:
-        print("[STATUS] RRT Finished. Settling for precision...")
-        for _ in range(150):
-            sim.step()
-            time.sleep(0.005)
-    
-    # === PHASE 3: CARTESIAN LINEAR (The Straight Descent) ===
-    print("[STATUS] Descending linearly...")
-    start_xyz = sim.data.body("hand").xpos.copy()
-    controller.move_cartesian_linear(start_xyz, target_pos, target_quat, num_steps=200)
-    for _ in range(50): 
-        sim.step()
-        time.sleep(0.005)
-
-    # === PHASE 4: GRASP ===
-    print("[GRASP] Closing gripper...")
-    sim.data.ctrl[7:] = 0.00
-    for _ in range(50): 
-        sim.step()
-    time.sleep(0.005)
-    # ===PHASE 5: POST GRASP ===
-    print("[STATUS] Lifting banana...")
-    current_pose = sim.data.body("hand").xpos.copy()
-    post_grasp_lift = current_pose + np.array([0.0, 0.0, 0.4]) 
-    controller.move_cartesian_linear(current_pose, post_grasp_lift, target_quat, num_steps=200)
-    for _ in range(5):
-        sim.step()
-        time.sleep(0.005)
-
-    # === PHASE 6: DEPOSIT IN BASKET ===
-    print("\n" + "="*80)
-    print("[PHASE 6] MOVING TO BASKET")
-    print("="*80)
-    basket_pos = sim.data.body("basket").xpos.copy()
-
-    basket_hover_pos = basket_pos + np.array([0.0, 0.0, 0.20]) 
-    basket_drop_pos = basket_pos + np.array([0.0, 0.0, 0.15]) 
-
-    print("[STATUS] Traveling to basket...")
-    success = controller.move_to_target(basket_hover_pos, target_quat)
-
-    if success:
-        print("[STATUS] Lowering into basket...")
-        start_drop_pos = sim.data.body("hand").xpos.copy()
-        controller.move_cartesian_linear(start_drop_pos, basket_drop_pos, target_quat, num_steps=100)
-        
-        for _ in range(50): 
-            sim.step()
-            time.sleep(0.002)
-
-    print("[GRASP] Releasing banana...")
-    sim.data.ctrl[7:] = 0.04  # Open the fingers
-    
-    for _ in range(50): 
-        sim.step()
-        time.sleep(0.002)
-
-    # === PHASE 7: POST-PLACE RETREAT ===
-    print("[STATUS] Banana released. Retreating from basket...")
-    
-    current_pose = sim.data.body("hand").xpos.copy()
-    retreat_pose = current_pose + np.array([0.0, 0.0, 0.30])
-
-    controller.move_cartesian_linear(current_pose, retreat_pose, target_quat, num_steps=100)
-    
-    for _ in range(50):
-        sim.step()
-        time.sleep(0.002)
-    print("[SUCCESS] Mission complete. Returning to Home.")
-    controller.move_to_home(q_home)
-            
-        
-    # Get step count from controller
     step_count = controller.get_step_count()
     try: 
         while True:

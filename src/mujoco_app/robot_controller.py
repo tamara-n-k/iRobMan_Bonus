@@ -44,7 +44,7 @@ class RobotController:
             print("[CONTROLLER] Reached home position!")
         return True
     
-    def move_to_target(self, target_pos, target_quat, verbose=True):
+    def move_to_target(self, target_pos, target_quat, num_steps=200, verbose=True):
         current_q = self.data.qpos[:7].copy()
         
         if verbose:
@@ -82,7 +82,7 @@ class RobotController:
         if path:
             if verbose:
                 print(f"[CONTROLLER] Path found with {len(path)} waypoints! Moving to target...")
-            self._execute_path(path, sub_steps=500, verbose=verbose)
+            self._execute_path(path, num_steps=num_steps, verbose=verbose)
             if verbose:
                 print("[CONTROLLER] Target reached!")
             return True
@@ -91,12 +91,12 @@ class RobotController:
                 print("[CONTROLLER] Failed to find collision-free path!")
             return False
     
-    def _execute_path(self, path, sub_steps=50, verbose=False):
+    def _execute_path(self, path, num_steps=200, verbose=False):
         last_waypoint = self.data.qpos[:7].copy()
         
         for waypoint_idx, next_waypoint in enumerate(path):
-            for s in range(sub_steps):
-                alpha = s / sub_steps
+            for s in range(num_steps):
+                alpha = s / num_steps
                 q_interp = (1 - alpha) * last_waypoint + alpha * next_waypoint
                 
                 self.data.ctrl[:7] = q_interp
