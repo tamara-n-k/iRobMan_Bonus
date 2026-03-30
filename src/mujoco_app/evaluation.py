@@ -10,7 +10,6 @@ import numpy as np
 from mujoco_app.ground_truth import get_body_pose_ground_truth
 from mujoco_app.pose_types import Pose
 
-
 class ExpData:
     """Per-run evaluation data collector."""
 
@@ -27,6 +26,9 @@ class ExpData:
         self.perception_ground_truth_pose: Optional[Pose] = None
         self._height_before_grasp: Optional[float] = None
         self._height_after_grasp: Optional[float] = None
+        self._move_to_basket_success = False
+        self._gripper_contact_at_basket: Optional[bool] = None
+        self._final_basket_status: Optional[dict[str, Any]] = None
 
     def save_perception(self, estimated_pose: Pose) -> None:
         """Store the estimated pose and current ground truth for this run."""
@@ -54,6 +56,34 @@ class ExpData:
         self._height_after_grasp = self._object_height()
         return self._height_after_grasp
 
+    def save_move_to_basket_success(self, success: bool) -> bool:
+        """Store whether the robot reached the basket placement pose."""
+
+        self._move_to_basket_success = bool(success)
+        return self._move_to_basket_success
+
+    def save_gripper_contact_at_basket(
+        self,
+        gripper_body_names: tuple[str, ...] = (
+            "hand",
+            "left_finger",
+            "right_finger",
+        ),
+    ) -> bool:
+        """Store whether the object is in contact with the gripper at the basket."""
+
+        self._gripper_contact_at_basket = any(
+            self.sim.bodies_colliding(self.body_name, body_name)
+            for body_name in gripper_body_names
+        )
+        return self._gripper_contact_at_basket
+
+    def save_final_basket_status(self, basket_status: dict[str, Any]) -> dict[str, Any]:
+        """Store the final basket state for the run."""
+
+        self._final_basket_status = basket_status
+        return self._final_basket_status
+
     @property
     def height_before_grasp(self) -> Optional[float]:
         return self._height_before_grasp
@@ -61,6 +91,18 @@ class ExpData:
     @property
     def height_after_grasp(self) -> Optional[float]:
         return self._height_after_grasp
+
+    @property
+    def move_to_basket_success(self) -> bool:
+        return self._move_to_basket_success
+
+    @property
+    def gripper_contact_at_basket(self) -> Optional[bool]:
+        return self._gripper_contact_at_basket
+
+    @property
+    def final_basket_status(self) -> Optional[dict[str, Any]]:
+        return self._final_basket_status
 
     def _object_height(self) -> float:
         return float(self.sim.data.body(self.body_name).xpos[2])
@@ -87,7 +129,7 @@ class Evaluation:
         """Return aggregated metrics for every evaluated object."""
 
         results: DefaultDict[str, Dict[str, list[dict[str, Any]]]] = defaultdict(
-            lambda: {"perception": [], "grasp": []}
+            lambda: {"perception": [], "grasp": [], "place": []}
         )
         for exp_data in self.experiment_runs:
             perception_result = self._evaluate_perception(exp_data)
@@ -100,13 +142,19 @@ class Evaluation:
             if grasp_result is not None:
                 results[exp_data.asset_name]["grasp"].append(grasp_result)
 
+            place_result = self._evaluate_place(exp_data)
+            if place_result is not None:
+                results[exp_data.asset_name]["place"].append(place_result)
+
         summary: dict[str, dict[str, dict[str, float | int | None]]] = {}
         for object_name, stage_results in results.items():
             perception_results = stage_results["perception"]
             grasp_results = stage_results["grasp"]
+            place_results = stage_results["place"]
             summary[object_name] = {
                 "perception": self._summarize_perception(perception_results),
                 "grasp": self._summarize_grasp(grasp_results),
+                "place": self._summarize_place(place_results),
             }
         return summary
 
@@ -121,6 +169,7 @@ class Evaluation:
         for object_name in sorted(summary):
             perception = summary[object_name]["perception"]
             grasp = summary[object_name]["grasp"]
+            place = summary[object_name]["place"]
             lines.append(f"{object_name}:")
             lines.append(
                 "  Perception -> "
@@ -139,6 +188,18 @@ class Evaluation:
                 f"{self._format_metric(grasp['avg_height_increase'], '.4f')} m, "
                 "avg_height_error="
                 f"{self._format_metric(grasp['avg_height_error'], '.4f')} m"
+            )
+            lines.append(
+                "  Place      -> "
+                f"runs={place['num_trials']}, "
+                "move_to_basket_rate="
+                f"{self._format_metric(place['move_to_basket_rate'], '.2%')}, "
+                "still_grasping_rate="
+                f"{self._format_metric(place['still_grasping_rate'], '.2%')}, "
+                "contact_rate="
+                f"{self._format_metric(place['contact_rate'], '.2%')}, "
+                "in_basket_rate="
+                f"{self._format_metric(place['in_basket_rate'], '.2%')}"
             )
         return "\n".join(lines)
 
@@ -193,6 +254,24 @@ class Evaluation:
             "height_error": height_error,
         }
 
+    def _evaluate_place(
+        self,
+        exp_data: ExpData,
+    ) -> Optional[dict[str, Any]]:
+        final_basket_status = exp_data.final_basket_status
+        if final_basket_status is None:
+            return None
+
+        in_basket = bool(final_basket_status["in_basket"])
+        gripper_contact = bool(exp_data.gripper_contact_at_basket)
+        still_grasping = gripper_contact
+        return {
+            "move_to_basket_success": exp_data.move_to_basket_success,
+            "gripper_contact": gripper_contact,
+            "still_grasping": still_grasping,
+            "in_basket": in_basket,
+        }
+
     def _summarize_perception(
         self,
         results: list[dict[str, Any]],
@@ -236,6 +315,40 @@ class Evaluation:
             ),
             "avg_height_error": float(
                 np.mean([item["height_error"] for item in results])
+            ),
+        }
+
+    def _summarize_place(
+        self,
+        results: list[dict[str, Any]],
+    ) -> dict[str, float | int | None]:
+        if not results:
+            return {
+                "num_trials": 0,
+                "move_to_basket_rate": 0.0,
+                "still_grasping_rate": None,
+                "contact_rate": None,
+                "in_basket_rate": None,
+            }
+
+        grasp_results = [
+            item["still_grasping"]
+            for item in results
+            if item["still_grasping"] is not None
+        ]
+        return {
+            "num_trials": len(results),
+            "move_to_basket_rate": float(
+                np.mean([item["move_to_basket_success"] for item in results])
+            ),
+            "contact_rate": float(
+                np.mean([item["gripper_contact"] for item in results])
+            ),
+            "still_grasping_rate": (
+                float(np.mean(grasp_results)) if grasp_results else None
+            ),
+            "in_basket_rate": float(
+                np.mean([item["in_basket"] for item in results])
             ),
         }
 

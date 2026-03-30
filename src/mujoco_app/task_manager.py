@@ -4,7 +4,7 @@ import numpy as np
 import time
 
 from mujoco_app.evaluation import ExpData
-from mujoco_app.grasp import estimate_top_down_grasp  # Correct function name
+from mujoco_app.grasp import estimate_top_down_grasp
 from mujoco_app.transformations import quat_xyzw_to_wxyz
 from mujoco_app.perception import build_observation, estimate_grasp_object_pose
 
@@ -16,7 +16,6 @@ class PickPlaceTask:
 
     def run(self, q_home, asset_name, object_name="sample_object", basket_body_name="basket") -> Tuple[bool, ExpData]:
         exp_data = ExpData(sim=self.sim, body_name=object_name, asset_name=asset_name)
-
         print("\n[GEOMETRY] Calculating grasp pose from mesh...")
         self.controller.move_to_home(q_home)
         self._settle(50)
@@ -76,6 +75,8 @@ class PickPlaceTask:
                 curr_pose = self.sim.data.body("hand").xpos.copy()
                 self.controller.move_cartesian_linear(curr_pose, basket_drop, target_quat, num_steps=100)
                 self._settle(50)
+                exp_data.save_move_to_basket_success(True)
+                exp_data.save_gripper_contact_at_basket()
                 
                 print("[PLACE] Releasing...")
                 self.sim.data.ctrl[7:] = 0.04 
@@ -87,6 +88,7 @@ class PickPlaceTask:
                 
                 self.controller.move_to_home(q_home)
                 return True, exp_data
+            exp_data.save_move_to_basket_success(False)
         return False, exp_data
 
     def _settle(self, steps):

@@ -181,6 +181,8 @@ def runner(
             print(f"\n[ERROR] Task interrupted: {e}")
             continue
 
+        basket_status = check_object_in_basket(sim)
+        exp_data.save_final_basket_status(basket_status)
         experiment_runs.append(exp_data)
         # Robot should not collide with obstacles
         # This condition must be there
