@@ -184,11 +184,7 @@ def runner(
         basket_status = check_object_in_basket(sim)
         exp_data.save_final_basket_status(basket_status)
         experiment_runs.append(exp_data)
-        # Robot should not collide with obstacles
-        # This condition must be there
-        if sim.check_robot_obstacle_collision():
-            print("Collision!")
-            break
+        
     sim.close()
     print("Simulation completed.")
     return experiment_runs

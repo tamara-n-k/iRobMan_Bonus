@@ -102,6 +102,9 @@ class RobotController:
                 self.data.ctrl[:7] = q_interp
                 for _ in range(5): 
                     self.sim.step()
+                    if self.sim.check_robot_obstacle_collision():
+                        print("Collision!")
+                        break
                 time.sleep(0.005)
                 self.step_count += 1
                 
@@ -117,6 +120,9 @@ class RobotController:
             self.data.ctrl[:7] = q_interp
             for _ in range(5): 
                 self.sim.step()
+                if self.sim.check_robot_obstacle_collision():
+                    print("Collision!")
+                    break
             time.sleep(0.005)
             self.step_count += 1
             
@@ -142,6 +148,9 @@ class RobotController:
                 self.data.ctrl[:7] = q_step[:7]
                 for _ in range(5): 
                     self.sim.step()
+                    if self.sim.check_robot_obstacle_collision():
+                        print("Collision!")
+                        break
                 time.sleep(0.005)
                 self.step_count += 1
 
