@@ -38,8 +38,7 @@ class RobotController:
             dist = np.linalg.norm(home_q - current_q)
             print(f"  Distance to home (joint space): {dist:.4f} rad")
         
-        # Use direct linear interpolation to home for smooth initial movement
-        self._linear_interpolate(current_q, home_q, num_steps=500, verbose=verbose)
+        self._execute_path([home_q], num_steps=300, verbose=verbose)
         
         if verbose:
             print("[CONTROLLER] Reached home position!")
@@ -112,21 +111,6 @@ class RobotController:
             
             if verbose and waypoint_idx % 5 == 0:
                 print(f"    Progress: {waypoint_idx}/{len(path)} waypoints")
-
-    def _linear_interpolate(self, start_q, goal_q, num_steps=300, verbose=False):
-        for step in range(num_steps):
-            alpha = step / num_steps
-            q_interp = (1 - alpha) * start_q + alpha * goal_q
-            self.data.ctrl[:7] = q_interp
-            for _ in range(5): 
-                self.sim.step()
-                if self.sim.check_robot_obstacle_collision():
-                    raise CollisionDetectedError()
-            #time.sleep(0.005)
-            self.step_count += 1
-            
-            if self.logger and self.step_count % self.log_interval == 0:
-                self.logger.log_frame(save_images=False)
 
 
     def move_cartesian_linear(self, start_pos, target_pos, target_quat, num_steps=50):
