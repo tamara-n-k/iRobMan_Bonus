@@ -1,82 +1,172 @@
 
 === Evaluation Overview ===
 YcbBanana:
-  Perception -> runs=1, success_rate=100.00%, avg_position_error=0.0044 m, avg_orientation_error=1.15 deg
+  Perception -> runs=10, success_rate=30.00%, avg_position_error=0.0216 m, avg_orientation_error=109.53 deg
   Perception Runs:
-    run=1, position_error=0.0044 m, orientation_error=1.15 deg, success=True
-  Grasp      -> runs=1, success_rate=100.00%, avg_height_increase=0.2628 m, avg_height_error=0.0000 m
-  Place      -> runs=1, move_to_basket_rate=100.00%, still_grasping_rate=100.00%, contact_rate=100.00%, in_basket_rate=100.00%
-  Termination -> runs=1, collision_terminated=0, collision_termination_rate=0.00%
+    run=1, position_error=0.0090 m, orientation_error=10.01 deg, success=False
+    run=2, position_error=0.0332 m, orientation_error=179.25 deg, success=False
+    run=3, position_error=0.0048 m, orientation_error=4.51 deg, success=True
+    run=4, position_error=0.0310 m, orientation_error=179.37 deg, success=False
+    run=5, position_error=0.0327 m, orientation_error=178.75 deg, success=False
+    run=6, position_error=0.0327 m, orientation_error=179.61 deg, success=False
+    run=7, position_error=0.0332 m, orientation_error=178.81 deg, success=False
+    run=8, position_error=0.0053 m, orientation_error=5.67 deg, success=True
+    run=9, position_error=0.0300 m, orientation_error=177.92 deg, success=False
+    run=10, position_error=0.0037 m, orientation_error=1.46 deg, success=True
+  Grasp      -> runs=10, success_rate=100.00%, avg_height_increase=0.2695 m, avg_height_error=0.0000 m
+  Place      -> runs=10, move_to_basket_rate=100.00%, still_grasping_rate=100.00%, contact_rate=100.00%, in_basket_rate=100.00%
+  Termination -> runs=10, collision_terminated=0, collision_termination_rate=0.00%
   Collision Runs -> none
 YcbCrackerBox:
-  Perception -> runs=1, success_rate=100.00%, avg_position_error=0.0030 m, avg_orientation_error=0.44 deg
+  Perception -> runs=10, success_rate=90.00%, avg_position_error=0.0244 m, avg_orientation_error=18.12 deg
   Perception Runs:
-    run=1, position_error=0.0030 m, orientation_error=0.44 deg, success=True
-  Grasp      -> runs=1, success_rate=0.00%, avg_height_increase=-0.0041 m, avg_height_error=0.0241 m
-  Place      -> runs=1, move_to_basket_rate=100.00%, still_grasping_rate=0.00%, contact_rate=0.00%, in_basket_rate=0.00%
-  Termination -> runs=1, collision_terminated=0, collision_termination_rate=0.00%
+    run=1, position_error=0.0037 m, orientation_error=0.37 deg, success=True
+    run=2, position_error=0.0028 m, orientation_error=0.43 deg, success=True
+    run=3, position_error=0.0041 m, orientation_error=0.12 deg, success=True
+    run=4, position_error=0.2129 m, orientation_error=178.56 deg, success=False
+    run=5, position_error=0.0033 m, orientation_error=0.25 deg, success=True
+    run=6, position_error=0.0035 m, orientation_error=0.61 deg, success=True
+    run=7, position_error=0.0038 m, orientation_error=0.11 deg, success=True
+    run=8, position_error=0.0028 m, orientation_error=0.27 deg, success=True
+    run=9, position_error=0.0033 m, orientation_error=0.14 deg, success=True
+    run=10, position_error=0.0034 m, orientation_error=0.33 deg, success=True
+  Grasp      -> runs=10, success_rate=100.00%, avg_height_increase=0.2352 m, avg_height_error=0.0000 m
+  Place      -> runs=10, move_to_basket_rate=100.00%, still_grasping_rate=100.00%, contact_rate=100.00%, in_basket_rate=100.00%
+  Termination -> runs=10, collision_terminated=0, collision_termination_rate=0.00%
   Collision Runs -> none
 YcbFoamBrick:
-  Perception -> runs=1, success_rate=0.00%, avg_position_error=0.0501 m, avg_orientation_error=178.89 deg
+  Perception -> runs=10, success_rate=10.00%, avg_position_error=0.0419 m, avg_orientation_error=128.28 deg
   Perception Runs:
-    run=1, position_error=0.0501 m, orientation_error=178.89 deg, success=False
-  Grasp      -> runs=1, success_rate=100.00%, avg_height_increase=0.2634 m, avg_height_error=0.0000 m
-  Place      -> runs=1, move_to_basket_rate=100.00%, still_grasping_rate=100.00%, contact_rate=100.00%, in_basket_rate=100.00%
-  Termination -> runs=1, collision_terminated=0, collision_termination_rate=0.00%
+    run=1, position_error=0.0455 m, orientation_error=88.49 deg, success=False
+    run=2, position_error=0.0028 m, orientation_error=0.27 deg, success=True
+    run=3, position_error=0.0535 m, orientation_error=176.61 deg, success=False
+    run=4, position_error=0.0564 m, orientation_error=118.80 deg, success=False
+    run=5, position_error=0.0636 m, orientation_error=178.25 deg, success=False
+    run=6, position_error=0.0342 m, orientation_error=179.65 deg, success=False
+    run=7, position_error=0.0083 m, orientation_error=17.22 deg, success=False
+    run=8, position_error=0.0499 m, orientation_error=179.51 deg, success=False
+    run=9, position_error=0.0358 m, orientation_error=177.63 deg, success=False
+    run=10, position_error=0.0689 m, orientation_error=166.37 deg, success=False
+  Grasp      -> runs=10, success_rate=100.00%, avg_height_increase=0.2664 m, avg_height_error=0.0000 m
+  Place      -> runs=10, move_to_basket_rate=100.00%, still_grasping_rate=100.00%, contact_rate=100.00%, in_basket_rate=100.00%
+  Termination -> runs=10, collision_terminated=0, collision_termination_rate=0.00%
   Collision Runs -> none
 YcbMasterChefCan:
-  Perception -> runs=1, success_rate=0.00%, avg_position_error=0.1483 m, avg_orientation_error=179.35 deg
+  Perception -> runs=10, success_rate=10.00%, avg_position_error=0.0494 m, avg_orientation_error=103.94 deg
   Perception Runs:
-    run=1, position_error=0.1483 m, orientation_error=179.35 deg, success=False
-  Grasp      -> runs=1, success_rate=0.00%, avg_height_increase=-0.0154 m, avg_height_error=0.0354 m
-  Place      -> runs=1, move_to_basket_rate=100.00%, still_grasping_rate=0.00%, contact_rate=0.00%, in_basket_rate=0.00%
-  Termination -> runs=1, collision_terminated=0, collision_termination_rate=0.00%
+    run=1, position_error=0.0250 m, orientation_error=78.77 deg, success=False
+    run=2, position_error=0.0027 m, orientation_error=3.60 deg, success=True
+    run=3, position_error=0.1487 m, orientation_error=179.65 deg, success=False
+    run=4, position_error=0.0096 m, orientation_error=27.96 deg, success=False
+    run=5, position_error=0.0348 m, orientation_error=124.40 deg, success=False
+    run=6, position_error=0.0306 m, orientation_error=102.26 deg, success=False
+    run=7, position_error=0.0319 m, orientation_error=107.64 deg, success=False
+    run=8, position_error=0.0240 m, orientation_error=75.98 deg, success=False
+    run=9, position_error=0.0388 m, orientation_error=159.57 deg, success=False
+    run=10, position_error=0.1481 m, orientation_error=179.60 deg, success=False
+  Grasp      -> runs=10, success_rate=0.00%, avg_height_increase=-0.0133 m, avg_height_error=0.0333 m
+  Place      -> runs=10, move_to_basket_rate=100.00%, still_grasping_rate=0.00%, contact_rate=0.00%, in_basket_rate=0.00%
+  Termination -> runs=10, collision_terminated=0, collision_termination_rate=0.00%
   Collision Runs -> none
 YcbMustardBottle:
-  Perception -> runs=1, success_rate=100.00%, avg_position_error=0.0055 m, avg_orientation_error=2.92 deg
+  Perception -> runs=10, success_rate=70.00%, avg_position_error=0.0199 m, avg_orientation_error=54.51 deg
   Perception Runs:
-    run=1, position_error=0.0055 m, orientation_error=2.92 deg, success=True
-  Grasp      -> runs=1, success_rate=100.00%, avg_height_increase=0.2339 m, avg_height_error=0.0000 m
-  Place      -> runs=1, move_to_basket_rate=100.00%, still_grasping_rate=0.00%, contact_rate=0.00%, in_basket_rate=0.00%
-  Termination -> runs=1, collision_terminated=0, collision_termination_rate=0.00%
+    run=1, position_error=0.0038 m, orientation_error=0.74 deg, success=True
+    run=2, position_error=0.0562 m, orientation_error=178.87 deg, success=False
+    run=3, position_error=0.0048 m, orientation_error=2.44 deg, success=True
+    run=4, position_error=0.0039 m, orientation_error=0.87 deg, success=True
+    run=5, position_error=0.0559 m, orientation_error=177.55 deg, success=False
+    run=6, position_error=0.0052 m, orientation_error=3.83 deg, success=True
+    run=7, position_error=0.0046 m, orientation_error=0.39 deg, success=True
+    run=8, position_error=0.0039 m, orientation_error=1.74 deg, success=True
+    run=9, position_error=0.0564 m, orientation_error=177.68 deg, success=False
+    run=10, position_error=0.0040 m, orientation_error=0.97 deg, success=True
+  Grasp      -> runs=10, success_rate=20.00%, avg_height_increase=0.0508 m, avg_height_error=0.0146 m
+  Place      -> runs=10, move_to_basket_rate=100.00%, still_grasping_rate=0.00%, contact_rate=0.00%, in_basket_rate=0.00%
+  Termination -> runs=10, collision_terminated=0, collision_termination_rate=0.00%
   Collision Runs -> none
 YcbPear:
-  Perception -> runs=1, success_rate=100.00%, avg_position_error=0.0036 m, avg_orientation_error=3.86 deg
+  Perception -> runs=10, success_rate=0.00%, avg_position_error=0.0629 m, avg_orientation_error=101.46 deg
   Perception Runs:
-    run=1, position_error=0.0036 m, orientation_error=3.86 deg, success=True
-  Grasp      -> runs=1, success_rate=0.00%, avg_height_increase=0.0028 m, avg_height_error=0.0172 m
-  Place      -> runs=1, move_to_basket_rate=100.00%, still_grasping_rate=0.00%, contact_rate=0.00%, in_basket_rate=0.00%
-  Termination -> runs=1, collision_terminated=0, collision_termination_rate=0.00%
+    run=1, position_error=0.0314 m, orientation_error=40.65 deg, success=False
+    run=2, position_error=0.0538 m, orientation_error=67.81 deg, success=False
+    run=3, position_error=0.0479 m, orientation_error=63.04 deg, success=False
+    run=4, position_error=0.0085 m, orientation_error=11.63 deg, success=False
+    run=5, position_error=0.0901 m, orientation_error=148.04 deg, success=False
+    run=6, position_error=0.0914 m, orientation_error=159.43 deg, success=False
+    run=7, position_error=0.0931 m, orientation_error=174.64 deg, success=False
+    run=8, position_error=0.0333 m, orientation_error=39.60 deg, success=False
+    run=9, position_error=0.0877 m, orientation_error=142.91 deg, success=False
+    run=10, position_error=0.0923 m, orientation_error=166.82 deg, success=False
+  Grasp      -> runs=10, success_rate=0.00%, avg_height_increase=0.0048 m, avg_height_error=0.0152 m
+  Place      -> runs=10, move_to_basket_rate=30.00%, still_grasping_rate=0.00%, contact_rate=0.00%, in_basket_rate=0.00%
+  Termination -> runs=10, collision_terminated=0, collision_termination_rate=0.00%
   Collision Runs -> none
 YcbPowerDrill:
-  Perception -> runs=1, success_rate=0.00%, avg_position_error=0.1244 m, avg_orientation_error=101.96 deg
+  Perception -> runs=10, success_rate=10.00%, avg_position_error=0.1207 m, avg_orientation_error=129.00 deg
   Perception Runs:
-    run=1, position_error=0.1244 m, orientation_error=101.96 deg, success=False
-  Grasp      -> runs=1, success_rate=0.00%, avg_height_increase=-0.0000 m, avg_height_error=0.0200 m
-  Place      -> runs=1, move_to_basket_rate=100.00%, still_grasping_rate=0.00%, contact_rate=0.00%, in_basket_rate=0.00%
-  Termination -> runs=1, collision_terminated=0, collision_termination_rate=0.00%
+    run=1, position_error=0.1364 m, orientation_error=149.59 deg, success=False
+    run=2, position_error=0.0948 m, orientation_error=103.11 deg, success=False
+    run=3, position_error=0.0029 m, orientation_error=1.08 deg, success=True
+    run=4, position_error=0.1754 m, orientation_error=178.45 deg, success=False
+    run=5, position_error=0.0782 m, orientation_error=57.61 deg, success=False
+    run=6, position_error=0.0673 m, orientation_error=104.11 deg, success=False
+    run=7, position_error=0.1681 m, orientation_error=173.62 deg, success=False
+    run=8, position_error=0.1628 m, orientation_error=169.99 deg, success=False
+    run=9, position_error=0.1596 m, orientation_error=179.23 deg, success=False
+    run=10, position_error=0.1619 m, orientation_error=173.23 deg, success=False
+  Grasp      -> runs=10, success_rate=10.00%, avg_height_increase=0.0055 m, avg_height_error=0.0174 m
+  Place      -> runs=10, move_to_basket_rate=100.00%, still_grasping_rate=0.00%, contact_rate=0.00%, in_basket_rate=0.00%
+  Termination -> runs=10, collision_terminated=0, collision_termination_rate=0.00%
   Collision Runs -> none
 YcbStrawberry:
-  Perception -> runs=1, success_rate=0.00%, avg_position_error=0.0352 m, avg_orientation_error=122.35 deg
+  Perception -> runs=10, success_rate=0.00%, avg_position_error=0.0373 m, avg_orientation_error=118.34 deg
   Perception Runs:
-    run=1, position_error=0.0352 m, orientation_error=122.35 deg, success=False
-  Grasp      -> runs=1, success_rate=100.00%, avg_height_increase=0.2715 m, avg_height_error=0.0000 m
-  Place      -> runs=1, move_to_basket_rate=100.00%, still_grasping_rate=0.00%, contact_rate=0.00%, in_basket_rate=100.00%
-  Termination -> runs=1, collision_terminated=0, collision_termination_rate=0.00%
+    run=1, position_error=0.0395 m, orientation_error=116.12 deg, success=False
+    run=2, position_error=0.0432 m, orientation_error=102.29 deg, success=False
+    run=3, position_error=0.0162 m, orientation_error=32.33 deg, success=False
+    run=4, position_error=0.0338 m, orientation_error=84.42 deg, success=False
+    run=5, position_error=0.0543 m, orientation_error=157.63 deg, success=False
+    run=6, position_error=0.0144 m, orientation_error=177.79 deg, success=False
+    run=7, position_error=0.0510 m, orientation_error=154.86 deg, success=False
+    run=8, position_error=0.0307 m, orientation_error=100.32 deg, success=False
+    run=9, position_error=0.0540 m, orientation_error=163.47 deg, success=False
+    run=10, position_error=0.0355 m, orientation_error=94.19 deg, success=False
+  Grasp      -> runs=10, success_rate=70.00%, avg_height_increase=0.1448 m, avg_height_error=0.0057 m
+  Place      -> runs=10, move_to_basket_rate=100.00%, still_grasping_rate=0.00%, contact_rate=0.00%, in_basket_rate=10.00%
+  Termination -> runs=10, collision_terminated=0, collision_termination_rate=0.00%
   Collision Runs -> none
 YcbTennisBall:
-  Perception -> runs=1, success_rate=0.00%, avg_position_error=0.1122 m, avg_orientation_error=170.45 deg
+  Perception -> runs=10, success_rate=0.00%, avg_position_error=0.0695 m, avg_orientation_error=100.88 deg
   Perception Runs:
-    run=1, position_error=0.1122 m, orientation_error=170.45 deg, success=False
-  Grasp      -> runs=1, success_rate=100.00%, avg_height_increase=0.2613 m, avg_height_error=0.0000 m
-  Place      -> runs=1, move_to_basket_rate=100.00%, still_grasping_rate=100.00%, contact_rate=100.00%, in_basket_rate=0.00%
-  Termination -> runs=1, collision_terminated=0, collision_termination_rate=0.00%
+    run=1, position_error=0.0570 m, orientation_error=61.55 deg, success=False
+    run=2, position_error=0.0395 m, orientation_error=88.29 deg, success=False
+    run=3, position_error=0.1089 m, orientation_error=163.37 deg, success=False
+    run=4, position_error=0.0569 m, orientation_error=63.04 deg, success=False
+    run=5, position_error=0.0741 m, orientation_error=100.46 deg, success=False
+    run=6, position_error=0.0367 m, orientation_error=38.26 deg, success=False
+    run=7, position_error=0.0330 m, orientation_error=135.98 deg, success=False
+    run=8, position_error=0.1004 m, orientation_error=129.49 deg, success=False
+    run=9, position_error=0.0945 m, orientation_error=115.14 deg, success=False
+    run=10, position_error=0.0942 m, orientation_error=113.24 deg, success=False
+  Grasp      -> runs=10, success_rate=40.00%, avg_height_increase=0.1040 m, avg_height_error=0.0096 m
+  Place      -> runs=10, move_to_basket_rate=100.00%, still_grasping_rate=30.00%, contact_rate=30.00%, in_basket_rate=10.00%
+  Termination -> runs=10, collision_terminated=0, collision_termination_rate=0.00%
   Collision Runs -> none
 YcbTomatoSoupCan:
-  Perception -> runs=1, success_rate=100.00%, avg_position_error=0.0068 m, avg_orientation_error=5.20 deg
+  Perception -> runs=10, success_rate=10.00%, avg_position_error=0.1190 m, avg_orientation_error=117.09 deg
   Perception Runs:
-    run=1, position_error=0.0068 m, orientation_error=5.20 deg, success=True
-  Grasp      -> runs=1, success_rate=100.00%, avg_height_increase=0.2305 m, avg_height_error=0.0000 m
-  Place      -> runs=1, move_to_basket_rate=100.00%, still_grasping_rate=100.00%, contact_rate=100.00%, in_basket_rate=0.00%
-  Termination -> runs=1, collision_terminated=0, collision_termination_rate=0.00%
+    run=1, position_error=0.1696 m, orientation_error=179.80 deg, success=False
+    run=2, position_error=0.1950 m, orientation_error=179.52 deg, success=False
+    run=3, position_error=0.0113 m, orientation_error=8.28 deg, success=True
+    run=4, position_error=0.1218 m, orientation_error=90.14 deg, success=False
+    run=5, position_error=0.0788 m, orientation_error=54.24 deg, success=False
+    run=6, position_error=0.1196 m, orientation_error=179.64 deg, success=False
+    run=7, position_error=0.1316 m, orientation_error=101.47 deg, success=False
+    run=8, position_error=0.1246 m, orientation_error=92.85 deg, success=False
+    run=9, position_error=0.1027 m, orientation_error=179.78 deg, success=False
+    run=10, position_error=0.1350 m, orientation_error=105.15 deg, success=False
+  Grasp      -> runs=10, success_rate=100.00%, avg_height_increase=0.2572 m, avg_height_error=0.0000 m
+  Place      -> runs=10, move_to_basket_rate=100.00%, still_grasping_rate=100.00%, contact_rate=100.00%, in_basket_rate=0.00%
+  Termination -> runs=10, collision_terminated=0, collision_termination_rate=0.00%
   Collision Runs -> none

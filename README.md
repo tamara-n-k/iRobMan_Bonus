@@ -1,3 +1,12 @@
+# Instruction for starting experiments
+```bash
+uv sync
+uv run main.py
+```
+Will run the pick and place pipeline using only vision pipeline with 10 experiments per object. Results will be outputed in terminal and under /evaluation_results. To change with which objects it will run adapt _get_objects in main.py.
+Obstacles are removed because no object tracking is implemented. 
+To turn off gui adapt config.
+
 # iRobMan – MuJoCo Workspace
 
 This repository now focuses on a single MuJoCo-based manipulation stack. It provides a light, Mac-friendly simulation environment with configurable cameras, objects, and robot motion helpers.
